@@ -48,6 +48,7 @@
         android:scrollbars="none">
 
         <LinearLayout
+            android:id="@+id/cardsContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
@@ -290,7 +291,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Thermo"
+                            android:text="Level Indicator"
                             android:textSize="12sp"
                             android:layout_marginTop="8dp"
                             android:textColor="@color/sidebar_text_secondary"/>
