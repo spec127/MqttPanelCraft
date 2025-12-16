@@ -36,6 +36,9 @@ import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.android.material.textfield.TextInputEditText
+import com.example.mqttpanelcraft.R
+import kotlinx.coroutines.*
+
 
 class ProjectViewActivity : AppCompatActivity() {
 
@@ -96,23 +99,8 @@ class ProjectViewActivity : AppCompatActivity() {
                     // v19: Save Last Project ID
                     val prefs = getSharedPreferences("MqttPanelPrefs", android.content.Context.MODE_PRIVATE)
                     prefs.edit().putString("LAST_PROJECT_ID", projectId).apply()
-
-                    val serviceIntent = android.content.Intent(this, com.example.mqttpanelcraft.service.MqttService::class.java)
-                    serviceIntent.action = "CONNECT"
-                    serviceIntent.putExtra("BROKER", project.broker)
-                    serviceIntent.putExtra("PORT", project.port)
-                    serviceIntent.putExtra("USER", project.username)
-                    serviceIntent.putExtra("PASSWORD", project.password)
-                    serviceIntent.putExtra("CLIENT_ID", project.clientId)
-                    try {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                            startForegroundService(serviceIntent)
-                        } else {
-                            startService(serviceIntent)
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
+                    
+                    // Connection moved to onResume()
                 }
             } else {
                 finish()
@@ -150,6 +138,67 @@ class ProjectViewActivity : AppCompatActivity() {
         setupWindowInsets()
 
         setupDrawerListener()
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        if (projectId != null) {
+            loadProjectDetails(projectId!!)
+            connectToBroker()
+            // v31: Refresh UI from Cache on Resume
+            refreshUIFromCache()
+        }
+    }
+    
+    // v31: Refresh all components from cached states
+    private fun refreshUIFromCache() {
+        for (i in 0 until editorCanvas.childCount) {
+            val view = editorCanvas.getChildAt(i)
+            val topic = view.contentDescription?.toString()
+            if (topic != null) {
+                val repTopic = topic.replace("/cmd", "/rep")
+                // Try specific rep topic first
+                var cached = MqttRepository.getTopicState(repTopic)
+                // Fallback to topic itself if stored that way (e.g. if we cached based on what we subscribed to?)
+                // Our cache keys come from message topics (which are .../rep).
+                // Our view topic is stored as .../cmd usually.
+                
+                if (cached != null) {
+                     // Parse type from tag or topic
+                     // Tag: "type:index"
+                     val tag = view.tag.toString()
+                     val type = if (tag.contains(":")) tag.split(":")[0] else "unknown"
+                     
+                     updateComponentState(view, type, cached)
+                }
+            }
+        }
+    }
+    
+    private fun connectToBroker() {
+        if (projectId == null) return
+        val project = ProjectRepository.getProjectById(projectId!!) ?: return
+        
+        // Avoid reconnecting if already connected to SAME broker? 
+        // For simplicity and "force update" requirement, we just send CONNECT Intent.
+        // MqttService.connect handles disconnect if needed.
+        
+        val serviceIntent = android.content.Intent(this, com.example.mqttpanelcraft.service.MqttService::class.java)
+        serviceIntent.action = "CONNECT"
+        serviceIntent.putExtra("BROKER", project.broker)
+        serviceIntent.putExtra("PORT", project.port)
+        serviceIntent.putExtra("USER", project.username)
+        serviceIntent.putExtra("PASSWORD", project.password)
+        serviceIntent.putExtra("CLIENT_ID", project.clientId)
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
     
     private fun setupWindowInsets() {
@@ -202,9 +251,17 @@ class ProjectViewActivity : AppCompatActivity() {
 
     
     private fun loadProjectDetails(id: String) {
+        projectId = id
         project = ProjectRepository.getProjectById(id)
+        
+        // v29: Set Active Project for Filtering
+        MqttRepository.activeProjectId = id
+        // v36: Clear Log on Project Switch
+        MqttRepository.clear()
+        
         if (project != null) {
             supportActionBar?.title = project!!.name
+            findViewById<TextView>(R.id.tvToolbarTitle).text = project!!.name
         }
     }
 
@@ -223,11 +280,26 @@ class ProjectViewActivity : AppCompatActivity() {
         // Observe Connection Status
         MqttRepository.connectionStatus.observe(this) { status ->
              val color = when(status) {
-                 MqttStatus.CONNECTED -> 0xFF00E676.toInt() // Green
+                 MqttStatus.CONNECTED -> {
+                     // v29: Trigger Full Sync on Connect
+                     performFullSync()
+                     0xFF00E676.toInt() // Green
+                 }
                  MqttStatus.FAILED -> 0xFFFF5252.toInt()    // Red
                  else -> 0xFFAAAAAA.toInt()                 // Gray
              }
              viewStatusDot.backgroundTintList = android.content.res.ColorStateList.valueOf(color)
+        }
+        
+        viewStatusDot.setOnClickListener {
+             // Manual Retry
+             connectToBroker()
+             Toast.makeText(this, "Retrying Connection...", Toast.LENGTH_SHORT).show()
+        }
+
+        // v25: Observe Incoming Messages for UI Updates
+        MqttRepository.latestMessage.observe(this) { msg ->
+             handleMqttMessage(msg.topic, msg.payload)
         }
     
         // Add Hamburger Menu Icon
@@ -245,20 +317,38 @@ class ProjectViewActivity : AppCompatActivity() {
         }
     }
         
+        // v22: Activity Result Launcher for Setup
+        val setupLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                // Check if ID was changed
+                val newId = result.data?.getStringExtra("NEW_ID")
+                if (newId != null) {
+                    projectId = newId
+                    
+                    // Update Prefs
+                    val prefs = getSharedPreferences("MqttPanelPrefs", android.content.Context.MODE_PRIVATE)
+                    prefs.edit().putString("LAST_PROJECT_ID", projectId).apply()
+                }
+                
+                // Reload details regardless
+                if (projectId != null) {
+                    loadProjectDetails(projectId!!)
+                    // v27: Removed explicit force reconnect here, handled by onResume()
+                }
+            }
+        }
+
         // Settings Button (Custom View)
         val btnSettings = findViewById<ImageView>(R.id.btnSettings)
         btnSettings.setOnClickListener {
              if (projectId != null) {
-                // val intent = android.content.Intent(this, SetupActivity::class.java) 
-                // Using direct class reference is safer
-                try {
-                     val intent = android.content.Intent(this, SetupActivity::class.java)
-                     intent.putExtra("PROJECT_ID", projectId)
-                     startActivity(intent)
-                     // finish() // Removed v21: Keep activity in stack
-                } catch (e: Exception) {
-                    android.widget.Toast.makeText(this, "Setup Activity not found", android.widget.Toast.LENGTH_SHORT).show()
-                }
+                 try {
+                      val intent = android.content.Intent(this, SetupActivity::class.java)
+                      intent.putExtra("PROJECT_ID", projectId)
+                      setupLauncher.launch(intent)
+                 } catch (e: Exception) {
+                     android.widget.Toast.makeText(this, "Setup Activity not found", android.widget.Toast.LENGTH_SHORT).show()
+                 }
             }
         }
         
@@ -425,8 +515,11 @@ class ProjectViewActivity : AppCompatActivity() {
         btnSaveProps = findViewById(R.id.btnSaveProps)
         
         etPropColor.setOnClickListener { showGradientColorPicker() } 
-        etPropColor.focusable = View.FOCUSABLE_AUTO
+        etPropColor.setOnClickListener { showGradientColorPicker() } 
+        etPropColor.isFocusable = false // v37: Fix for API < 26 compatibility
         etPropColor.isFocusableInTouchMode = false
+        
+        // v37: Remove duplicated unused import from top if present (not doing here, handled by tool)
         
         btnSaveProps.setOnClickListener {
             selectedView?.let { view ->
@@ -520,8 +613,17 @@ class ProjectViewActivity : AppCompatActivity() {
         }
         
         btnSend.setOnClickListener {
-            val topic = etTopic.text.toString()
+            var topic = etTopic.text.toString()
             val payload = etPayload.text.toString()
+            
+            // v38: Auto-Prefix for Console
+            if (project != null && projectId != null) {
+                val prefix = "${project!!.name.lowercase()}/$projectId/"
+                if (!topic.startsWith(prefix) && topic.isNotEmpty()) {
+                    topic = prefix + topic
+                }
+            }
+            
             if (topic.isNotEmpty() && payload.isNotEmpty()) {
                 val serviceIntent = android.content.Intent(this, com.example.mqttpanelcraft.service.MqttService::class.java)
                 serviceIntent.action = "PUBLISH"
@@ -532,7 +634,16 @@ class ProjectViewActivity : AppCompatActivity() {
         }
         
         btnSubscribe.setOnClickListener {
-            val topic = etTopic.text.toString()
+            var topic = etTopic.text.toString()
+            
+            // v38: Auto-Prefix for Console
+            if (project != null && projectId != null) {
+                val prefix = "${project!!.name.lowercase()}/$projectId/"
+                if (!topic.startsWith(prefix) && topic.isNotEmpty()) {
+                    topic = prefix + topic
+                }
+            }
+            
             if (topic.isNotEmpty()) {
                 val serviceIntent = android.content.Intent(this, com.example.mqttpanelcraft.service.MqttService::class.java)
                 serviceIntent.action = "SUBSCRIBE"
@@ -682,38 +793,98 @@ class ProjectViewActivity : AppCompatActivity() {
     }
     
     private fun createComponentView(tag: String): View {
+        // v24: Calculate Index
+        val type = com.example.mqttpanelcraft.utils.TopicHelper.getComponentType(tag)
+        var count = 0
+        for (i in 0 until editorCanvas.childCount) {
+             val child = editorCanvas.getChildAt(i)
+             val childTag = child.tag
+             // We need to store the specific type in tag or checking class/properties
+             // For now, let's assume we can check the view type or we start tagging views with "type:index"
+             // But existing code uses tag logic for DnD.
+             // Let's iterate and check if we can identify them.
+             // Better approach: Store "componentType" in a view property (tag is used for DnD source, but destination view can use tag too)
+             if (child.tag is String && (child.tag as String).startsWith(type)) {
+                 count++
+             }
+        }
+        val nextIndex = (count + 1).toString()
+        
+        // Generate Topic
+        val topic = if (project != null && projectId != null) {
+             com.example.mqttpanelcraft.utils.TopicHelper.formatTopic(
+                 project!!.name,
+                 projectId!!,
+                 type,
+                 nextIndex,
+                 "cmd" // Default to cmd for buttons, others might be rep
+             )
+        } else {
+            "unknown"
+        }
+
         return when (tag) {
             "TEXT" -> TextView(this).apply {
-                text = "Txt"
+                text = "Txt $nextIndex"
                 setBackgroundColor(0xFFE1F5FE.toInt())
                 gravity = Gravity.CENTER
                 setTextColor(Color.BLACK)
+                this.tag = "$type:$nextIndex" // Store type info
+                // We might want to store the topic too, use setTag(R.id..., topic)? 
+                // For prototype, simple tag is risky if we reuse it.
+                // Let's allow DnD to work by not breaking standard tag usage if it relies on it?
+                // DnD source uses tag. Destination views don't seem to use it for logic yet.
             }
             "IMAGE" -> ImageView(this).apply {
                 setImageResource(android.R.drawable.ic_menu_gallery)
                 setBackgroundColor(Color.LTGRAY)
                 scaleType = ImageView.ScaleType.FIT_CENTER
+                this.tag = "$type:$nextIndex"
             }
             "BUTTON" -> Button(this).apply {
-                text = "Btn"
+                text = "Btn $nextIndex"
                 setPadding(0,0,0,0) 
+                this.tag = "$type:$nextIndex"
             }
             "SLIDER" -> com.google.android.material.slider.Slider(this).apply {
                 valueFrom = 0f
                 valueTo = 100f
                 value = 50f
+                this.tag = "$type:$nextIndex"
             }
             "LED" -> View(this).apply {
                 setBackgroundResource(R.drawable.shape_circle_green) // Using existing circle shape
+                this.tag = "$type:$nextIndex"
             }
             "THERMOMETER" -> android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
                 progress = 50
                 max = 100
-                // Hack to make it look vertical? Or just horizontal for now.
-                // Or use a simple View that looks like a bar.
-                // For simplicity, let's use a narrow view with a background.
+                this.tag = "$type:$nextIndex"
             }
             else -> TextView(this).apply { text = "?" }
+        }.also { view ->
+            // Store Topic in a keyed tag to avoid conflict
+            // We define a resource id or just use contentDescription for now if lazy?
+            // Ideally define <item name="tag_topic" type="id"/> in ids.xml
+            // But I cannot edit resources easily without checking ids.xml.
+            // I'll use a unique Map or just a runtime property map in Activity for this session.
+            // Or just contentDescription as a hack for prototype "storage"
+            view.contentDescription = topic
+            
+            // v29: Initialize with Cached State if available
+            val cachedPayload = MqttRepository.getTopicState(topic) ?: MqttRepository.getTopicState("$topic/rep")
+            // Try both specific rep topic or just topic if cache stored differently. 
+            // Our cache stores topic as key. Incoming rep msg has topic .../rep
+            // If we generated topic "cmd", we need to check "rep".
+            
+            // topic variable is ".../cmd"
+            // rep topic is ".../rep"
+            val repTopic = topic.replace("/cmd", "/rep")
+            val cached = MqttRepository.getTopicState(repTopic)
+            
+            if (cached != null) {
+                 updateComponentState(view, type, cached)
+            }
         }
     }
     
@@ -724,7 +895,24 @@ class ProjectViewActivity : AppCompatActivity() {
                 populateProperties(view)
                 bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
             } else {
-                Toast.makeText(this, "Clicked!", Toast.LENGTH_SHORT).show()
+                // v25: Run Mode - Send Command
+                val topic = view.contentDescription?.toString()
+                if (topic != null) {
+                    val serviceIntent = android.content.Intent(this, com.example.mqttpanelcraft.service.MqttService::class.java)
+                    serviceIntent.action = "PUBLISH"
+                    serviceIntent.putExtra("TOPIC", topic) // Topic is already ".../cmd"
+                    
+                    // Payload Strategy:
+                    // For Button: Toggle or Push? Standard "1" for now as per plan
+                    val payload = "1" 
+                    
+                    serviceIntent.putExtra("PAYLOAD", payload)
+                    startService(serviceIntent)
+                    
+                    Toast.makeText(this, "CMD: $topic -> $payload", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "No Topic Assigned", Toast.LENGTH_SHORT).show()
+                }
             }
         }
         
@@ -735,6 +923,116 @@ class ProjectViewActivity : AppCompatActivity() {
              view.startDragAndDrop(data, shadow, view, 0)
              view.visibility = View.INVISIBLE 
              true
+        }
+    }
+
+    // v25: Subscribe to wildcard topic for all components
+    // v29: Modified for Full Sync
+    private fun subscribeToProjectTopics(projectName: String, projectId: String) {
+        // Topic: {project}/{id}/+/+/rep
+        val topicFilter = "${projectName.lowercase()}/$projectId/+/+/rep"
+        val serviceIntent = android.content.Intent(this, com.example.mqttpanelcraft.service.MqttService::class.java)
+        serviceIntent.action = "SUBSCRIBE"
+        serviceIntent.putExtra("TOPIC", topicFilter)
+        startService(serviceIntent)
+    }
+    
+    // v29: Perform Full Sync (Subscribe All -> Wait -> Unsubscribe Inactive)
+    private fun performFullSync() {
+        if (projectId == null) return
+        
+        // v37: Use CoroutineScope instead of lifecycleScope (missing dependency)
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            val allProjects = ProjectRepository.getAllProjects()
+            val currentId = projectId
+            
+            // 1. Subscribe to ALL projects
+            for (p in allProjects) {
+                val pName = p.name.lowercase().replace("\\s".toRegex(), "_")
+                // Subscribe to .../rep
+                val topic = "$pName/${p.id}/+/+/rep"
+                
+                val intent = android.content.Intent(this@ProjectViewActivity, com.example.mqttpanelcraft.service.MqttService::class.java)
+                intent.action = "SUBSCRIBE"
+                intent.putExtra("TOPIC", topic)
+                startService(intent)
+            }
+            
+            // 2. Wait for Retained Messages
+            kotlinx.coroutines.delay(2000)
+            
+            // 3. Unsubscribe from Inactive
+            for (p in allProjects) {
+                if (p.id != currentId) {
+                    val pName = p.name.lowercase().replace("\\s".toRegex(), "_")
+                    val topic = "$pName/${p.id}/+/+/rep"
+                    
+                    val intent = android.content.Intent(this@ProjectViewActivity, com.example.mqttpanelcraft.service.MqttService::class.java)
+                    intent.action = "UNSUBSCRIBE"
+                    intent.putExtra("TOPIC", topic)
+                    startService(intent)
+                }
+            }
+        }
+    }
+
+    // v25: Handle incoming messages to update UI
+    private fun handleMqttMessage(topic: String, payload: String) {
+         // Expected: {project}/{id}/{type}/{index}/rep
+         val parts = topic.split("/")
+         if (parts.size < 5) return // Invalid format
+         
+         // parts[0]=proj, parts[1]=id, parts[2]=type, parts[3]=index, parts[4]=rep
+         val type = parts[2]
+         val index = parts[3]
+         val direction = parts[4]
+         
+         if (direction != "rep") return // Only process reports
+         
+         // Find View in editorCanvas
+         // Tag format: "type:index" e.g. "button:1"
+         val targetTag = "$type:$index"
+         
+         // Iterate to find view with this tag
+         var targetView: View? = null
+         for (i in 0 until editorCanvas.childCount) {
+             val child = editorCanvas.getChildAt(i)
+             if (child.tag == targetTag) {
+                 targetView = child
+                 break
+             }
+         }
+         
+         if (targetView != null) {
+             updateComponentState(targetView, type, payload)
+         }
+    }
+    
+    private fun updateComponentState(view: View, type: String, payload: String) {
+        try {
+            when (type.lowercase()) {
+                "led" -> {
+                    val isOn = payload.equals("1") || payload.equals("on", true) || payload.equals("true", true)
+                    
+                    if (isOn) {
+                        view.setBackgroundResource(R.drawable.shape_circle_green)
+                        view.backgroundTintList = null // Use original color (Green)
+                    } else {
+                        view.setBackgroundResource(R.drawable.shape_circle_green) 
+                        view.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.LTGRAY)
+                    }
+                }
+                "text" -> {
+                    if (view is TextView) {
+                        view.text = payload
+                    }
+                }
+                "button" -> {
+                     // Optional
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -792,5 +1090,20 @@ class ProjectViewActivity : AppCompatActivity() {
         if (view is TextView) etPropName.setText(view.text)
         else if (view is Button) etPropName.setText(view.text)
         else if (view is SwitchMaterial) etPropName.setText(view.text)
+        
+        // v24: Show Topic in Properties (ReadOnly)
+        // We need a TextView in layout for this.
+        // Assuming we will add it or reuse an existing field?
+        // Let's use Toast for now or check if we can add it to layout quickly.
+        // Or if there is a console topic field, maybe unrelated.
+        val topic = view.contentDescription?.toString() ?: "No Topic"
+        // Let's Find specific view or just Toast it for verification if UI field is missing.
+        // But plan said "Display in properties panel".
+        // I will add a TextView to the properties layout in the next step.
+        val tvPropTopic = findViewById<TextView>(R.id.tvPropTopic)
+        if (tvPropTopic != null) {
+            tvPropTopic.text = "Topic: $topic"
+            tvPropTopic.visibility = View.VISIBLE
+        }
      }
 }

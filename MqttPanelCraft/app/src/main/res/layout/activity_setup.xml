@@ -44,6 +44,59 @@
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
+            <!-- Project ID (Read Only + Regenerate) -->
+            <LinearLayout
+                android:id="@+id/containerProjectId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                tools:visibility="visible"
+                android:gravity="bottom"
+                android:layout_marginBottom="16dp">
+                
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Project ID"
+                        android:textColor="#757575"
+                        android:textSize="14sp" />
+                    
+                    <TextView
+                        android:id="@+id/tvProjectId"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="ID: abc1234567"
+                        android:textColor="@color/black"
+                        android:textSize="16sp"
+                        android:fontFamily="monospace"
+                        android:background="@drawable/bg_card_unselected"
+                        android:padding="12dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"/>
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnChangeId"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Change" 
+                    android:textColor="@color/black"
+                    android:textSize="14sp"
+                    app:strokeColor="#757575"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"/>
+            </LinearLayout>
+
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/tilProjectName"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"

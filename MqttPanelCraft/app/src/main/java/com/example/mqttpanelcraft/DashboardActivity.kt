@@ -18,7 +18,9 @@ import androidx.appcompat.app.AlertDialog
 import android.widget.AutoCompleteTextView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.switchmaterial.SwitchMaterial
+import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlinx.coroutines.*
 
 class DashboardActivity : AppCompatActivity() {
 
@@ -55,6 +57,7 @@ class DashboardActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadProjects()
+        startConnectionCheck()
     }
 
     private fun setupToolbar() {
@@ -176,6 +179,8 @@ class DashboardActivity : AppCompatActivity() {
     private fun loadProjects() {
         try {
             val projects = ProjectRepository.getAllProjects()
+            // v38: Don't just set data, allow connection check to update it.
+            // But we need initial data.
             projectAdapter.updateData(projects)
 
             if (projects.isEmpty()) {
@@ -188,6 +193,55 @@ class DashboardActivity : AppCompatActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "Error loading projects: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+    
+    // v38: Dashboard Connectivity Check (Request 4)
+    private var connectionJob: kotlinx.coroutines.Job? = null
+    private val dashboardScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
+    
+    override fun onPause() {
+        super.onPause()
+        stopConnectionCheck()
+    }
+    
+    private fun startConnectionCheck() {
+        stopConnectionCheck()
+        connectionJob = dashboardScope.launch {
+            while (isActive) {
+                checkAllProjectsConnection()
+                kotlinx.coroutines.delay(10000) // Check every 10s
+            }
+        }
+    }
+    
+    private fun stopConnectionCheck() {
+        connectionJob?.cancel()
+        connectionJob = null
+    }
+    
+    private suspend fun checkAllProjectsConnection() {
+        val currentProjects = ProjectRepository.getAllProjects() // Get fresh list
+        if (currentProjects.isEmpty()) return
+        
+        val updatedList = currentProjects.map { project ->
+             val isOnline = checkBrokerConnectivity(project.broker, project.port)
+             project.copy(isConnected = isOnline)
+        }
+        
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+             projectAdapter.updateData(updatedList)
+        }
+    }
+    
+    private fun checkBrokerConnectivity(broker: String, port: Int): Boolean {
+        return try {
+            val socket = java.net.Socket()
+            socket.connect(java.net.InetSocketAddress(broker, port), 2000) // 2s timeout
+            socket.close()
+            true
+        } catch (e: Exception) {
+            false
         }
     }
 }

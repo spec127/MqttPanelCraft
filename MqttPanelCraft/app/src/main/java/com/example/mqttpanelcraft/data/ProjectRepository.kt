@@ -97,6 +97,20 @@ object ProjectRepository {
     }
     
     fun generateId(): String {
-        return System.currentTimeMillis().toString()
+        val secureRandom = java.security.SecureRandom()
+        val charPool = "0123456789abcdefghijklmnopqrstuvwxyz"
+        var newId: String
+        do {
+            newId = (1..10)
+                .map { charPool[secureRandom.nextInt(charPool.length)] }
+                .joinToString("")
+        } while (getProjectById(newId) != null)
+        return newId
+    }
+
+    fun isProjectNameTaken(name: String, excludeId: String? = null): Boolean {
+        return projects.any {
+            it.name.equals(name, ignoreCase = true) && it.id != excludeId
+        }
     }
 }

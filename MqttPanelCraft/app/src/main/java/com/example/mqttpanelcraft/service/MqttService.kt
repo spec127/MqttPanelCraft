@@ -49,6 +49,9 @@ class MqttService : Service() {
         } else if (action == "SUBSCRIBE") {
             val topic = intent.getStringExtra("TOPIC")
             subscribe(topic)
+        } else if (action == "UNSUBSCRIBE") {
+            val topic = intent.getStringExtra("TOPIC")
+            unsubscribe(topic)
         } else if (action == "PUBLISH") {
             val topic = intent.getStringExtra("TOPIC")
             val payload = intent.getStringExtra("PAYLOAD")
@@ -67,7 +70,7 @@ class MqttService : Service() {
             MqttRepository.setStatus(com.example.mqttpanelcraft.MqttStatus.CONNECTING) // Gray
             
             var attempt = 1
-            val maxAttempts = 3
+            val maxAttempts = 5 // v28: Increased to 5
             var connected = false
             
             while (attempt <= maxAttempts && !connected) {
@@ -126,8 +129,8 @@ class MqttService : Service() {
                 } catch (e: Exception) {
                     MqttRepository.addLog("Connect Fail ($attempt): ${e.message}", getTime())
                     if (attempt < maxAttempts) {
-                        MqttRepository.addLog("Retrying in 5s...", getTime())
-                        delay(5000)
+                        MqttRepository.addLog("Retrying in 3s...", getTime())
+                        delay(3000)
                     }
                     attempt++
                 }
@@ -158,6 +161,16 @@ class MqttService : Service() {
             MqttRepository.addLog("Service: Subscribed to $topic", getTime())
         } catch (e: Exception) {
              MqttRepository.addLog("Service: Subscribe Error - ${e.message}", getTime())
+        }
+    }
+    
+    private fun unsubscribe(topic: String?) {
+        if (topic.isNullOrEmpty() || mqttClient == null || !mqttClient!!.isConnected) return
+        try {
+            mqttClient!!.unsubscribe(topic)
+            MqttRepository.addLog("Service: Unsubscribed from $topic", getTime())
+        } catch (e: Exception) {
+             MqttRepository.addLog("Service: Unsubscribe Error - ${e.message}", getTime())
         }
     }
 

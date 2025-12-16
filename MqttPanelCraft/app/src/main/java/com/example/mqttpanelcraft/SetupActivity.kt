@@ -79,6 +79,34 @@ class SetupActivity : AppCompatActivity() {
         etUser.setText(project.username)
         etPassword.setText(project.password)
         
+        // v2: Show Project ID + Change Button
+        val containerProjectId = findViewById<android.view.View>(R.id.containerProjectId)
+        val tvProjectId = findViewById<TextView>(R.id.tvProjectId)
+        val btnChangeId = findViewById<MaterialButton>(R.id.btnChangeId)
+        
+        containerProjectId.visibility = android.view.View.VISIBLE
+        tvProjectId.text = id
+        
+        btnChangeId.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setTitle("Change Project ID")
+                .setMessage("Warning: Changing the ID will treat this as a new entry. Are you sure?")
+                .setPositiveButton("Generate New ID") { _, _ ->
+                     val newId = ProjectRepository.generateId()
+                     tvProjectId.text = newId
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+        
+        // v38: Copy ID to Clipboard
+        tvProjectId.setOnClickListener {
+            val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val clip = android.content.ClipData.newPlainText("Project ID", tvProjectId.text.toString())
+            clipboard.setPrimaryClip(clip)
+            android.widget.Toast.makeText(this, "ID Copied", android.widget.Toast.LENGTH_SHORT).show()
+        }
+
         selectType(project.type)
         btnSave.text = "Update & Start"
         supportActionBar?.title = "Edit Project"
@@ -196,6 +224,19 @@ class SetupActivity : AppCompatActivity() {
             etName.error = getString(R.string.error_name_required)
             return
         }
+        
+        // Regex Validation
+        if (!name.matches(Regex("^[A-Za-z0-9_]+$"))) {
+            etName.error = "Only letters, numbers, and underscores allowed"
+            return
+        }
+        
+        // Duplicate Name Check
+        if (ProjectRepository.isProjectNameTaken(name, projectId)) {
+            etName.error = "Project name already exists"
+            return
+        }
+
         if (broker.isBlank()) {
             etBroker.error = getString(R.string.error_broker_required)
             return
@@ -205,8 +246,20 @@ class SetupActivity : AppCompatActivity() {
         val user = etUser.text.toString()
         val pass = etPassword.text.toString()
 
+        // Determine ID
+        var finalId = projectId ?: ProjectRepository.generateId()
+        
+        // Check if ID was changed in UI (Only in Edit Mode)
+        if (projectId != null) {
+             val tvProjectId = findViewById<TextView>(R.id.tvProjectId)
+             val currentUiId = tvProjectId.text.toString()
+             if (currentUiId != projectId) {
+                 finalId = currentUiId
+             }
+        }
+
         val newProject = Project(
-            id = projectId ?: ProjectRepository.generateId(),
+            id = finalId,
             name = name,
             broker = broker,
             port = port,
@@ -217,9 +270,24 @@ class SetupActivity : AppCompatActivity() {
         )
         
         if (projectId != null) {
-            ProjectRepository.updateProject(newProject)
+            if (finalId != projectId) {
+                // ID Changed: Delete old, Add new
+                ProjectRepository.deleteProject(projectId!!)
+                ProjectRepository.addProject(newProject)
+                
+                // Return result to Caller
+                val resultIntent = android.content.Intent()
+                resultIntent.putExtra("NEW_ID", finalId)
+                setResult(RESULT_OK, resultIntent)
+            } else {
+                ProjectRepository.updateProject(newProject)
+                setResult(RESULT_OK)
+            }
         } else {
             ProjectRepository.addProject(newProject)
+            // For new project, we might want to return it too?
+            // Caller usually reloads list.
+            setResult(RESULT_OK)
         }
         
         // Finish SetupActivity to return to previous screen

@@ -309,17 +309,19 @@
                                      android:layout_height="wrap_content"/>
                              </com.google.android.material.textfield.TextInputLayout>
         
-                             <!-- Topic (Control) -->
-                              <com.google.android.material.textfield.TextInputLayout
+                             <!-- Topic (Control - ReadOnly) -->
+                             <TextView
+                                 android:id="@+id/tvPropTopic"
                                  android:layout_width="match_parent"
                                  android:layout_height="wrap_content"
-                                 android:hint="MQTT Topic"
-                                 android:layout_marginBottom="8dp">
-                                 <com.google.android.material.textfield.TextInputEditText
-                                     android:id="@+id/etPropTopic"
-                                     android:layout_width="match_parent"
-                                     android:layout_height="wrap_content"/>
-                             </com.google.android.material.textfield.TextInputLayout>
+                                 android:text="Topic: "
+                                 android:layout_marginBottom="8dp"
+                                 android:padding="8dp"
+                                 android:background="#EEE"
+                                 android:textColor="#333"
+                                 android:fontFamily="monospace"/>
+
+
         
                              <Button
                                  android:id="@+id/btnSaveProps"
