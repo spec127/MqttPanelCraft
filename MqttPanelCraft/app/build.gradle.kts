@@ -14,7 +14,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.spec127.mqttpanelcraft_beta"
+        applicationId = "com.spec127.mqttpanelcraft"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
