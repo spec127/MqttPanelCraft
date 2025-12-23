@@ -11,6 +11,7 @@ import java.io.File
 object ProjectRepository {
     private val projects = mutableListOf<Project>()
     private var file: File? = null
+    private const val FILE_NAME = "projects.json"
 
     fun initialize(context: Context) {
         file = File(context.filesDir, "projects.json")
@@ -46,7 +47,7 @@ object ProjectRepository {
                 val lastOpenedAt = obj.optLong("lastOpenedAt", System.currentTimeMillis())
 
                 val project = Project(id, name, broker, port, user, pass, client, type, false, mutableListOf(), customCode, createdAt, lastOpenedAt)
-                
+
                 // Load Components
                 val compsArray = obj.optJSONArray("components")
                 if (compsArray != null) {
@@ -60,7 +61,7 @@ object ProjectRepository {
                         val cH = cObj.getInt("height")
                         val cLabel = cObj.optString("label", "")
                         val cTopicConfig = cObj.optString("topicConfig", "")
-                        
+
                         val cProps = mutableMapOf<String, String>()
                         val propsObj = cObj.optJSONObject("props")
                         if (propsObj != null) {
@@ -68,12 +69,12 @@ object ProjectRepository {
                                 cProps[key] = propsObj.getString(key)
                             }
                         }
-                        
+
                         val comp = ComponentData(cId, cType, cX, cY, cW, cH, cLabel, cTopicConfig, cProps)
                         project.components.add(comp)
                     }
                 }
-                
+
                 projects.add(project)
             }
         } catch (e: Exception) {
@@ -98,7 +99,7 @@ object ProjectRepository {
                 obj.put("customCode", p.customCode)
                 obj.put("createdAt", p.createdAt)
                 obj.put("lastOpenedAt", p.lastOpenedAt)
-                
+
                 // Save Components
                 val compsArray = JSONArray()
                 for (c in p.components) {
@@ -119,7 +120,7 @@ object ProjectRepository {
                     compsArray.put(cObj)
                 }
                 obj.put("components", compsArray)
-                
+
                 jsonArray.put(obj)
             }
             file!!.writeText(jsonArray.toString())
@@ -161,9 +162,9 @@ object ProjectRepository {
         projects.removeIf { it.id == id }
         saveProjects()
     }
-    
 
-    
+
+
     fun generateId(): String {
         val secureRandom = java.security.SecureRandom()
         val charPool = "0123456789abcdefghijklmnopqrstuvwxyz"
@@ -188,7 +189,7 @@ object ProjectRepository {
         try {
             val root = JSONObject()
             root.put("schemaVersion", 1)
-            
+
             val meta = JSONObject()
             meta.put("exportedAt", System.currentTimeMillis())
             meta.put("appVersion", "1.0")
@@ -202,7 +203,7 @@ object ProjectRepository {
             pObj.put("port", project.port)
             pObj.put("username", project.username)
             // SECURITY: Do NOT export password by default
-            // pObj.put("password", project.password) 
+            // pObj.put("password", project.password)
             pObj.put("type", project.type.name)
             pObj.put("customCode", project.customCode)
             pObj.put("createdAt", project.createdAt)
@@ -227,9 +228,9 @@ object ProjectRepository {
                 compsArray.put(cObj)
             }
             pObj.put("components", compsArray)
-            
+
             root.put("project", pObj)
-            
+
             // Format with indentation = 2 for readability
             return root.toString(2)
         } catch (e: Exception) {
@@ -243,9 +244,9 @@ object ProjectRepository {
         try {
             val root = JSONObject(jsonStr)
             // schemaVersion check could go here
-            
+
             val pObj = root.getJSONObject("project")
-            
+
             val id = pObj.optString("id", "")
             val name = pObj.optString("name", "Imported Project")
             val broker = pObj.optString("broker", "")
@@ -257,12 +258,12 @@ object ProjectRepository {
             val customCode = pObj.optString("customCode", "")
 
             val project = Project(
-                id = id, 
-                name = name, 
-                broker = broker, 
-                port = port, 
-                username = user, 
-                password = "", 
+                id = id,
+                name = name,
+                broker = broker,
+                port = port,
+                username = user,
+                password = "",
                 type = type,
                 customCode = customCode,
                 createdAt = pObj.optLong("createdAt", System.currentTimeMillis()),
@@ -281,7 +282,7 @@ object ProjectRepository {
                      val cH = cObj.getInt("height")
                      val cLabel = cObj.optString("label", "")
                      val cTopicConfig = cObj.optString("topicConfig", "")
-                     
+
                      val cProps = mutableMapOf<String, String>()
                      val propsObj = cObj.optJSONObject("props")
                      if (propsObj != null) {
@@ -289,7 +290,7 @@ object ProjectRepository {
                              cProps[key] = propsObj.getString(key)
                          }
                      }
-                     
+
                      project.components.add(ComponentData(cId, cType, cX, cY, cW, cH, cLabel, cTopicConfig, cProps))
                 }
             }

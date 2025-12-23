@@ -28,7 +28,7 @@ class DashboardActivity : AppCompatActivity() {
     private lateinit var binding: ActivityDashboardBinding
     private lateinit var projectAdapter: ProjectAdapter
     private var isGuest = false
-    
+
     // v85: Sorting State
     // 0: Custom, 1: Name, 2: Date, 3: Last Opened
     private var currentSortMode = 3 // Default: Last Opened (User feedback implies preference for simply finding projects)
@@ -45,7 +45,7 @@ class DashboardActivity : AppCompatActivity() {
             setupDrawer()
             setupRecyclerView()
             setupFab()
-            
+
             // Fix Status Bar Overlap
             androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.drawerLayout) { view, insets ->
                 val bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
@@ -54,6 +54,14 @@ class DashboardActivity : AppCompatActivity() {
                 content.setPadding(0, bars.top, 0, 0)
                 androidx.core.view.WindowInsetsCompat.CONSUMED
             }
+
+            // Initialize Data
+            ProjectRepository.initialize(this)
+
+            // Initialize Ads
+            com.example.mqttpanelcraft.utils.AdManager.initialize(this)
+            com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer)
+
         } catch (e: Exception) {
             CrashLogger.logError(this, "Dashboard Init Failed", e)
         }
@@ -112,9 +120,9 @@ class DashboardActivity : AppCompatActivity() {
         
         // Setup Sort RadioGroup
         val radioGroupSort = bottomSheetDialog.findViewById<android.widget.RadioGroup>(R.id.radioGroupSort)
-        
+
         // Initialize radio state (check based on simple logic or leave unchecked? Let's check "Name" by default if user asks, but strictly we don't know state.
-        // Actually, user just wants to SORT. 
+        // Actually, user just wants to SORT.
         // We can leave checks alone or manage currentSortMode as "Last Action" indicator if we want.
         // For simplicity:
         when (currentSortMode) {
@@ -122,7 +130,7 @@ class DashboardActivity : AppCompatActivity() {
             2 -> radioGroupSort?.check(R.id.rbSortDateNew)
             3 -> radioGroupSort?.check(R.id.rbSortLastOpened)
         }
-        
+
         radioGroupSort?.setOnCheckedChangeListener { _, checkedId ->
             when (checkedId) {
                 R.id.rbSortNameAsc -> {
@@ -181,7 +189,7 @@ class DashboardActivity : AppCompatActivity() {
                 // Update Last Opened
                 project.lastOpenedAt = System.currentTimeMillis()
                 ProjectRepository.updateProject(project) // Save timestamp
-                
+
                 // On Item Click -> Open Project View or WebView
                 Toast.makeText(this, "Opening ${project.name}...", Toast.LENGTH_SHORT).show()
                 val targetActivity = if (project.type == com.example.mqttpanelcraft.model.ProjectType.WEBVIEW) {
@@ -189,7 +197,7 @@ class DashboardActivity : AppCompatActivity() {
                 } else {
                     ProjectViewActivity::class.java
                 }
-                
+
                 val intent = Intent(this, targetActivity)
                 intent.putExtra("PROJECT_ID", project.id)
                 startActivity(intent)
@@ -205,7 +213,7 @@ class DashboardActivity : AppCompatActivity() {
                         .setMessage("Are you sure you want to delete '${project.name}'?")
                         .setPositiveButton("Delete") { _, _ ->
                             try {
-                                ProjectRepository.deleteProject(project.id)
+                                ProjectRepository.deleteProject(this@DashboardActivity, project.id)
                                 loadProjects() // Refresh list
                                 Toast.makeText(this, "Project deleted", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
@@ -221,16 +229,16 @@ class DashboardActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@DashboardActivity)
             adapter = projectAdapter
         }
-        
+
         // v85: Drag & Drop (Project Reordering) - Restored
         val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
-            androidx.recyclerview.widget.ItemTouchHelper.UP or androidx.recyclerview.widget.ItemTouchHelper.DOWN, 
-            0 
+            androidx.recyclerview.widget.ItemTouchHelper.UP or androidx.recyclerview.widget.ItemTouchHelper.DOWN,
+            0
         ) {
             override fun onMove(recyclerView: androidx.recyclerview.widget.RecyclerView, viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder, target: androidx.recyclerview.widget.RecyclerView.ViewHolder): Boolean {
                 val fromPos = viewHolder.adapterPosition
                 val toPos = target.adapterPosition
-                
+
                 try {
                      ProjectRepository.swapProjects(fromPos, toPos)
                      projectAdapter.notifyItemMoved(fromPos, toPos)
@@ -253,10 +261,10 @@ class DashboardActivity : AppCompatActivity() {
     private fun loadProjects() {
         try {
             val projects = ProjectRepository.getAllProjects()
-            
+
             // v85: Sorting is now persistent in Repository (Action-based)
             // No need to sort here dynamically.
-            
+
             // v38: Don't just set data, allow connection check to update it.
             // But we need initial data.
             projectAdapter.updateData(projects)
@@ -273,16 +281,16 @@ class DashboardActivity : AppCompatActivity() {
             Toast.makeText(this, "Error loading projects: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
-    
+
     // v38: Dashboard Connectivity Check (Request 4)
     private var connectionJob: kotlinx.coroutines.Job? = null
     private val dashboardScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
-    
+
     override fun onPause() {
         super.onPause()
         stopConnectionCheck()
     }
-    
+
     private fun startConnectionCheck() {
         stopConnectionCheck()
         connectionJob = dashboardScope.launch {
@@ -292,26 +300,26 @@ class DashboardActivity : AppCompatActivity() {
             }
         }
     }
-    
+
     private fun stopConnectionCheck() {
         connectionJob?.cancel()
         connectionJob = null
     }
-    
+
     private suspend fun checkAllProjectsConnection() {
         val currentProjects = ProjectRepository.getAllProjects() // Get fresh list
         if (currentProjects.isEmpty()) return
-        
+
         val updatedList = currentProjects.map { project ->
              val isOnline = checkBrokerConnectivity(project.broker, project.port)
              project.copy(isConnected = isOnline)
         }
-        
+
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
              projectAdapter.updateData(updatedList)
         }
     }
-    
+
     private fun checkBrokerConnectivity(broker: String, port: Int): Boolean {
         return try {
             java.net.Socket().use { socket ->

@@ -70,6 +70,13 @@
             app:backgroundTint="@color/primary"
             app:tint="@android:color/white" />
 
+        <FrameLayout
+            android:id="@+id/bannerAdContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:background="@android:color/transparent" />
+
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
     <com.google.android.material.navigation.NavigationView

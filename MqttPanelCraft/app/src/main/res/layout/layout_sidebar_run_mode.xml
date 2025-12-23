@@ -8,12 +8,13 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Project Actions"
+        android:text="Display Actions"
         android:textColor="@color/sidebar_section_header"
         android:textSize="18sp"
         android:textStyle="bold"
         android:layout_marginBottom="16dp"/>
 
+    <!-- Orientation Lock Toggle Switch -->
     <!-- Show Grid Toggle Switch -->
     <com.google.android.material.switchmaterial.SwitchMaterial
         android:id="@+id/switchGridToggleRunMode"
@@ -26,9 +27,21 @@
 
     <!-- Dark Mode Toggle Switch -->
     <com.google.android.material.switchmaterial.SwitchMaterial
-        android:id="@+id/switchDarkMode"
+        android:id="@+id/switchOrientationLock"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:text="Lock Orientation"
+        android:checked="false"
+        android:textSize="14sp"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Keep Screen On Toggle Switch -->
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switchKeepScreenOn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Keep Screen On"
+        android:checked="false"
         android:text="Dark Mode"
         android:textSize="14sp"
         android:layout_marginBottom="16dp" />

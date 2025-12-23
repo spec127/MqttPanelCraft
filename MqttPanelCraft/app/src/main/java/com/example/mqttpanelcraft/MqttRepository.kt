@@ -63,13 +63,13 @@ object MqttRepository {
     interface MessageListener {
         fun onMessageReceived(topic: String, payload: String)
     }
-    
+
     private val listeners = java.util.concurrent.CopyOnWriteArrayList<MessageListener>()
-    
+
     fun registerListener(listener: MessageListener) {
         if (!listeners.contains(listener)) listeners.add(listener)
     }
-    
+
     fun unregisterListener(listener: MessageListener) {
         listeners.remove(listener)
     }
@@ -79,20 +79,20 @@ object MqttRepository {
         
         // Notify Listeners (Direct Call - Background Thread)
         for (listener in listeners) {
-            try { 
-                listener.onMessageReceived(topic, payload) 
+            try {
+                listener.onMessageReceived(topic, payload)
             } catch (e: Exception) { e.printStackTrace() }
         }
-        
+
         _latestMessage.postValue(RawMessage(topic, payload))
-        
+
         // v29: Update Cache
         cachedStates[topic] = payload
-        
+
         // v29: Log Filtering & v36: Relative Path Formatting
         var shouldLog = true
         var displayTopic = topic
-        
+
         if (activeProjectId != null) {
             val parts = topic.split("/")
             // Topic format: name/id/type/index/direction
@@ -112,7 +112,7 @@ object MqttRepository {
                  if (msgProjectId != activeProjectId) shouldLog = false
             }
         }
-        
+
         if (shouldLog) {
             addLog("RX [$displayTopic]: $payload", timestamp)
         }

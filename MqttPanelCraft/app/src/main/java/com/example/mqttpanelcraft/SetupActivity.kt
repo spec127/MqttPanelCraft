@@ -80,21 +80,26 @@ class SetupActivity : AppCompatActivity() {
         setupWindowInsets()
     }
 
+        // Initialize Data (in case started directly or process restoration)
+        ProjectRepository.initialize(this)
+
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             WindowInsetsCompat.CONSUMED
         }
+        com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, findViewById(R.id.bannerAdContainer))
+        com.example.mqttpanelcraft.utils.AdManager.loadRewarded(this)
     }
     
     private fun setupEditMode(id: String) {
         val project = ProjectRepository.getProjectById(id) ?: return
         originalProject = project
-        
+
         // Show Export
         btnExport.visibility = android.view.View.VISIBLE
-        
+
         etName.setText(project.name)
         etBroker.setText(project.broker)
         etPort.setText(project.port.toString())
@@ -129,8 +134,12 @@ class SetupActivity : AppCompatActivity() {
             android.widget.Toast.makeText(this, "ID Copied", android.widget.Toast.LENGTH_SHORT).show()
         }
 
+
+        findViewById<TextInputEditText>(R.id.etProjectName).setText(project.name)
+        findViewById<TextInputEditText>(R.id.etBroker).setText(project.broker)
         selectType(project.type)
         btnSave.text = "Update & Start"
+        findViewById<MaterialButton>(R.id.btnSaveProject).text = "Update Project"
         supportActionBar?.title = "Edit Project"
     }
 
@@ -187,9 +196,13 @@ class SetupActivity : AppCompatActivity() {
         btnSave = findViewById(R.id.btnSaveProject)
         btnImport = findViewById(R.id.btnImportJson)
         btnExport = findViewById(R.id.btnExportJson)
-        
+
         btnImport.setOnClickListener { showImportDialog() }
         btnExport.setOnClickListener { showExportDialog() }
+        val etName = findViewById<TextInputEditText>(R.id.etProjectName)
+        val etBroker = findViewById<TextInputEditText>(R.id.etBroker)
+        val btnTest = findViewById<MaterialButton>(R.id.btnTestConnection)
+        val btnSave = findViewById<MaterialButton>(R.id.btnSaveProject)
 
         cardHome = findViewById(R.id.cardHome)
         ivHome = findViewById(R.id.ivHome)
@@ -208,7 +221,6 @@ class SetupActivity : AppCompatActivity() {
         cardFactory.setOnClickListener { selectType(ProjectType.FACTORY) }
         cardWebview.setOnClickListener { selectType(ProjectType.WEBVIEW) }
 
-        // Test Connection (Real)
         btnTest.setOnClickListener {
            testConnection()
         }
@@ -223,7 +235,7 @@ class SetupActivity : AppCompatActivity() {
         val context = this
         val builder = AlertDialog.Builder(context)
         builder.setTitle("Import Configuration Payload")
-        
+
         val input = android.widget.EditText(context)
         input.hint = "Paste JSON here..."
         input.isSingleLine = false
@@ -231,23 +243,23 @@ class SetupActivity : AppCompatActivity() {
         input.gravity = android.view.Gravity.TOP or android.view.Gravity.START
         input.setPadding(40, 40, 40, 40)
         input.textSize = 12f
-        
+
         builder.setView(input)
-        
+
         builder.setPositiveButton("Load Text") { _, _ ->
             val json = input.text.toString()
             if (json.isNotBlank()) {
                 processImportedJson(json)
             }
         }
-        
+
         builder.setNeutralButton("Load File") { _, _ ->
              // MIME types: json, text, or any
              openJsonLauncher.launch(arrayOf("application/json", "text/plain", "*/*"))
         }
 
         builder.setNegativeButton("Cancel", null)
-        
+
         val dialog = builder.create()
         // Fix: Set input mode on the dialog's window, not via view
         dialog.window?.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
@@ -264,7 +276,7 @@ class SetupActivity : AppCompatActivity() {
                  newName += "_" + System.currentTimeMillis() % 1000
             }
             etName.setText(newName)
-            
+
             // Set Imported ID - DISABLED to prevent ID Collision/Duplication bugs
             // Importing configuration should NOT change the Project's Identity (ID).
             // if (imported.id.isNotEmpty()) {
@@ -273,17 +285,17 @@ class SetupActivity : AppCompatActivity() {
             //    containerProjectId.visibility = android.view.View.VISIBLE
             //    tvProjectId.text = imported.id
             // }
-            
+
             etBroker.setText(imported.broker)
             etPort.setText(imported.port.toString())
             etUser.setText(imported.username)
             // Password usually ignored
             selectType(imported.type)
-            
+
             // Store Structure
             pendingComponents = imported.components
             pendingCustomCode = imported.customCode
-            
+
             android.widget.Toast.makeText(this, "Loaded ${imported.components.size} components!", android.widget.Toast.LENGTH_SHORT).show()
         } else {
              android.widget.Toast.makeText(this, "Invalid JSON", android.widget.Toast.LENGTH_SHORT).show()
@@ -292,12 +304,12 @@ class SetupActivity : AppCompatActivity() {
 
     private fun showExportDialog() {
         if (originalProject == null) return
-        
+
         val json = ProjectRepository.exportProjectToJson(originalProject!!)
         val context = this
         val builder = AlertDialog.Builder(context)
         builder.setTitle("Export Configuration")
-        
+
         val input = android.widget.EditText(context)
         input.setText(json)
         input.isSingleLine = false
@@ -307,21 +319,21 @@ class SetupActivity : AppCompatActivity() {
         input.setPadding(40, 40, 40, 40)
         input.textSize = 10f
         input.typeface = android.graphics.Typeface.MONOSPACE
-        
+
         builder.setView(input)
-        
+
         builder.setPositiveButton("Copy") { _, _ ->
              val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
              val clip = android.content.ClipData.newPlainText("Config JSON", json)
              clipboard.setPrimaryClip(clip)
              android.widget.Toast.makeText(context, "Copied to Clipboard", android.widget.Toast.LENGTH_SHORT).show()
         }
-        
+
         builder.setNeutralButton("Save File") { _, _ ->
              pendingExportJson = json
              saveJsonLauncher.launch("${originalProject?.name ?: "config"}.json")
         }
-        
+
         builder.setNegativeButton("Close", null)
         builder.show()
     }
@@ -387,11 +399,25 @@ class SetupActivity : AppCompatActivity() {
             }
         }
     }
+            btnTest.isEnabled = false
+            btnTest.text = "Testing..."
+
+            Handler(Looper.getMainLooper()).postDelayed({
+                btnTest.text = "OK"
+                btnTest.isEnabled = true
+                btnTest.setTextColor(Color.GREEN)
+                btnTest.strokeColor = ColorStateList.valueOf(Color.GREEN)
+            }, 1000)
+        }
 
     private fun saveProject() {
         val name = etName.text.toString()
         val broker = etBroker.text.toString()
         val portStr = etPort.text.toString()
+        // Save
+        btnSave.setOnClickListener {
+            val name = etName.text.toString()
+            val broker = etBroker.text.toString()
 
         if (name.isBlank()) {
             etName.error = getString(R.string.error_name_required)
@@ -432,18 +458,26 @@ class SetupActivity : AppCompatActivity() {
         }
 
         // Determine Components & Custom Code
-        // Logic: 
+        // Logic:
         // 1. If pendingComponents is set (Import happened), use it.
         // 2. Else if originalProject exists (Edit Mode), keep its components.
         // 3. Else (New Project), empty list.
-        
-        val finalComponents = pendingComponents 
+
+        val finalComponents = pendingComponents
             ?: originalProject?.components?.toMutableList() // Copy to avoid mutation issues
             ?: mutableListOf()
-            
+
         val finalCustomCode = pendingCustomCode
             ?: originalProject?.customCode
             ?: ""
+            if (name.isBlank()) {
+                etName.error = getString(R.string.error_name_required)
+                return@setOnClickListener
+            }
+            if (broker.isBlank()) {
+                etBroker.error = getString(R.string.error_broker_required)
+                return@setOnClickListener
+            }
 
         val newProject = Project(
             id = finalId,
@@ -457,6 +491,17 @@ class SetupActivity : AppCompatActivity() {
             components = finalComponents,
             customCode = finalCustomCode
         )
+            val newProject = Project(
+                id = projectId ?: ProjectRepository.generateId(),
+                name = name,
+                broker = broker,
+                type = selectedType,
+                isConnected = false
+            )
+
+            // Unified Flow: Always Show Rewarded
+            val targetProjectId = newProject.id
+            var isRewardEarned = false
 
         if (projectId != null) {
             if (finalId != projectId) {
@@ -477,6 +522,34 @@ class SetupActivity : AppCompatActivity() {
             // For new project, we might want to return it too?
             // Caller usually reloads list.
             setResult(RESULT_OK)
+            if (com.example.mqttpanelcraft.utils.AdManager.isRewardedReady()) {
+                com.example.mqttpanelcraft.utils.AdManager.showRewarded(this,
+                    onReward = {
+                        isRewardEarned = true
+                    },
+                    onClosed = {
+                        if (isRewardEarned) {
+                            if (projectId != null) {
+                                ProjectRepository.updateProject(this, newProject)
+                            } else {
+                                ProjectRepository.addProject(this, newProject)
+                            }
+
+                            val intent = android.content.Intent(this, ProjectViewActivity::class.java)
+                            intent.putExtra("PROJECT_ID", targetProjectId)
+                            intent.putExtra("IS_EDIT_MODE", true)
+                            startActivity(intent)
+                            finish()
+                        } else {
+                            android.widget.Toast.makeText(this, "You must watch the full ad to save/update!", android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    }
+                )
+            } else {
+                android.widget.Toast.makeText(this, "Ad is loading, please wait...", android.widget.Toast.LENGTH_SHORT).show()
+                // Retry loading just in case
+                com.example.mqttpanelcraft.utils.AdManager.loadRewarded(this)
+            }
         }
 
         // Finish SetupActivity to return to previous screen
@@ -492,6 +565,18 @@ class SetupActivity : AppCompatActivity() {
         cardHome.setBackgroundResource(R.drawable.bg_card_unselected)
         ivHome.setColorFilter(greyColor)
         tvHome.setTextColor(greyColor)
+        if (type == ProjectType.HOME) {
+            cardHome.setBackgroundResource(R.drawable.bg_card_selected)
+            ivHome.setColorFilter(primaryColor)
+            tvHome.setTextColor(primaryColor)
+
+            cardFactory.setBackgroundResource(R.drawable.bg_card_unselected)
+            ivFactory.setColorFilter(greyColor)
+            tvFactory.setTextColor(greyColor)
+        } else {
+            cardHome.setBackgroundResource(R.drawable.bg_card_unselected)
+            ivHome.setColorFilter(greyColor)
+            tvHome.setTextColor(greyColor)
 
         cardFactory.setBackgroundResource(R.drawable.bg_card_unselected)
         ivFactory.setColorFilter(greyColor)
@@ -519,6 +604,10 @@ class SetupActivity : AppCompatActivity() {
                 tvWebview.setTextColor(primaryColor)
             }
             else -> {} // Handle OTHER if needed
+        }
+            cardFactory.setBackgroundResource(R.drawable.bg_card_selected)
+            ivFactory.setColorFilter(primaryColor)
+            tvFactory.setTextColor(primaryColor)
         }
     }
 }
