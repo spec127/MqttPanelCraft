@@ -213,7 +213,7 @@ class DashboardActivity : AppCompatActivity() {
                         .setMessage("Are you sure you want to delete '${project.name}'?")
                         .setPositiveButton("Delete") { _, _ ->
                             try {
-                                ProjectRepository.deleteProject(this@DashboardActivity, project.id)
+                                ProjectRepository.deleteProject(project.id)
                                 loadProjects() // Refresh list
                                 Toast.makeText(this, "Project deleted", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {

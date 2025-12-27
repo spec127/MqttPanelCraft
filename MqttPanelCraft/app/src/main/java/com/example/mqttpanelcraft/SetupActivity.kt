@@ -65,6 +65,7 @@ class SetupActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_setup)
+        ProjectRepository.initialize(this)
 
         setupToolbar()
         setupViews()
@@ -80,8 +81,7 @@ class SetupActivity : AppCompatActivity() {
         setupWindowInsets()
     }
 
-        // Initialize Data (in case started directly or process restoration)
-        ProjectRepository.initialize(this)
+
 
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { view, insets ->
@@ -399,25 +399,14 @@ class SetupActivity : AppCompatActivity() {
             }
         }
     }
-            btnTest.isEnabled = false
-            btnTest.text = "Testing..."
 
-            Handler(Looper.getMainLooper()).postDelayed({
-                btnTest.text = "OK"
-                btnTest.isEnabled = true
-                btnTest.setTextColor(Color.GREEN)
-                btnTest.strokeColor = ColorStateList.valueOf(Color.GREEN)
-            }, 1000)
-        }
 
     private fun saveProject() {
         val name = etName.text.toString()
         val broker = etBroker.text.toString()
         val portStr = etPort.text.toString()
-        // Save
-        btnSave.setOnClickListener {
-            val name = etName.text.toString()
-            val broker = etBroker.text.toString()
+        val user = etUser.text.toString()
+        val pass = etPassword.text.toString()
 
         if (name.isBlank()) {
             etName.error = getString(R.string.error_name_required)
@@ -442,8 +431,6 @@ class SetupActivity : AppCompatActivity() {
         }
 
         val port = portStr.toIntOrNull() ?: 1883
-        val user = etUser.text.toString()
-        val pass = etPassword.text.toString()
 
         // Determine ID
         var finalId = projectId ?: ProjectRepository.generateId()
@@ -458,11 +445,6 @@ class SetupActivity : AppCompatActivity() {
         }
 
         // Determine Components & Custom Code
-        // Logic:
-        // 1. If pendingComponents is set (Import happened), use it.
-        // 2. Else if originalProject exists (Edit Mode), keep its components.
-        // 3. Else (New Project), empty list.
-
         val finalComponents = pendingComponents
             ?: originalProject?.components?.toMutableList() // Copy to avoid mutation issues
             ?: mutableListOf()
@@ -470,14 +452,6 @@ class SetupActivity : AppCompatActivity() {
         val finalCustomCode = pendingCustomCode
             ?: originalProject?.customCode
             ?: ""
-            if (name.isBlank()) {
-                etName.error = getString(R.string.error_name_required)
-                return@setOnClickListener
-            }
-            if (broker.isBlank()) {
-                etBroker.error = getString(R.string.error_broker_required)
-                return@setOnClickListener
-            }
 
         val newProject = Project(
             id = finalId,
@@ -491,27 +465,44 @@ class SetupActivity : AppCompatActivity() {
             components = finalComponents,
             customCode = finalCustomCode
         )
-            val newProject = Project(
-                id = projectId ?: ProjectRepository.generateId(),
-                name = name,
-                broker = broker,
-                type = selectedType,
-                isConnected = false
+
+        // Unified Flow: Always Show Rewarded
+        val targetProjectId = newProject.id
+        var isRewardEarned = false
+
+        if (com.example.mqttpanelcraft.utils.AdManager.isRewardedReady()) {
+            com.example.mqttpanelcraft.utils.AdManager.showRewarded(this,
+                onReward = {
+                    isRewardEarned = true
+                },
+                onClosed = {
+                    if (isRewardEarned) {
+                        saveAndFinish(newProject, targetProjectId)
+                    } else {
+                        android.widget.Toast.makeText(this, "You must watch the full ad to save/update!", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
             )
+        } else {
+             // Fallback if ad not ready? Or force wait?
+             // For user experience, let's save anyway if ad fails to load, or show toast.
+             // V7 requirement says "Watch Ad to Save".
+             // We can try to load again.
+             android.widget.Toast.makeText(this, "Ad is loading, please wait...", android.widget.Toast.LENGTH_SHORT).show()
+             com.example.mqttpanelcraft.utils.AdManager.loadRewarded(this)
+        }
+    }
 
-            // Unified Flow: Always Show Rewarded
-            val targetProjectId = newProject.id
-            var isRewardEarned = false
-
+    private fun saveAndFinish(newProject: Project, targetProjectId: String) {
         if (projectId != null) {
-            if (finalId != projectId) {
+            if (newProject.id != projectId) {
                 // ID Changed: Delete old, Add new
                 ProjectRepository.deleteProject(projectId!!)
                 ProjectRepository.addProject(newProject)
-
-                // Return result to Caller
+                
+                 // Return result to Caller
                 val resultIntent = android.content.Intent()
-                resultIntent.putExtra("NEW_ID", finalId)
+                resultIntent.putExtra("NEW_ID", newProject.id)
                 setResult(RESULT_OK, resultIntent)
             } else {
                 ProjectRepository.updateProject(newProject)
@@ -519,40 +510,15 @@ class SetupActivity : AppCompatActivity() {
             }
         } else {
             ProjectRepository.addProject(newProject)
-            // For new project, we might want to return it too?
-            // Caller usually reloads list.
             setResult(RESULT_OK)
-            if (com.example.mqttpanelcraft.utils.AdManager.isRewardedReady()) {
-                com.example.mqttpanelcraft.utils.AdManager.showRewarded(this,
-                    onReward = {
-                        isRewardEarned = true
-                    },
-                    onClosed = {
-                        if (isRewardEarned) {
-                            if (projectId != null) {
-                                ProjectRepository.updateProject(this, newProject)
-                            } else {
-                                ProjectRepository.addProject(this, newProject)
-                            }
-
-                            val intent = android.content.Intent(this, ProjectViewActivity::class.java)
-                            intent.putExtra("PROJECT_ID", targetProjectId)
-                            intent.putExtra("IS_EDIT_MODE", true)
-                            startActivity(intent)
-                            finish()
-                        } else {
-                            android.widget.Toast.makeText(this, "You must watch the full ad to save/update!", android.widget.Toast.LENGTH_LONG).show()
-                        }
-                    }
-                )
-            } else {
-                android.widget.Toast.makeText(this, "Ad is loading, please wait...", android.widget.Toast.LENGTH_SHORT).show()
-                // Retry loading just in case
-                com.example.mqttpanelcraft.utils.AdManager.loadRewarded(this)
-            }
         }
-
-        // Finish SetupActivity to return to previous screen
+        
+        // If we want to open project immediately (optional, but standard flow usually returns to dashboard)
+        // XML has "Save and Start" implies opening.
+        // Let's open it.
+        val intent = android.content.Intent(this, ProjectViewActivity::class.java)
+        intent.putExtra("PROJECT_ID", targetProjectId)
+        startActivity(intent)
         finish()
     }
 
@@ -561,22 +527,10 @@ class SetupActivity : AppCompatActivity() {
         val primaryColor = ContextCompat.getColor(this, R.color.primary)
         val greyColor = Color.parseColor("#757575")
 
-        // Reset all to unselected state
+        // 1. Reset all to unselected state
         cardHome.setBackgroundResource(R.drawable.bg_card_unselected)
         ivHome.setColorFilter(greyColor)
         tvHome.setTextColor(greyColor)
-        if (type == ProjectType.HOME) {
-            cardHome.setBackgroundResource(R.drawable.bg_card_selected)
-            ivHome.setColorFilter(primaryColor)
-            tvHome.setTextColor(primaryColor)
-
-            cardFactory.setBackgroundResource(R.drawable.bg_card_unselected)
-            ivFactory.setColorFilter(greyColor)
-            tvFactory.setTextColor(greyColor)
-        } else {
-            cardHome.setBackgroundResource(R.drawable.bg_card_unselected)
-            ivHome.setColorFilter(greyColor)
-            tvHome.setTextColor(greyColor)
 
         cardFactory.setBackgroundResource(R.drawable.bg_card_unselected)
         ivFactory.setColorFilter(greyColor)
@@ -586,7 +540,7 @@ class SetupActivity : AppCompatActivity() {
         ivWebview.setColorFilter(greyColor)
         tvWebview.setTextColor(greyColor)
 
-        // Highlight selected
+        // 2. Highlight selected
         when (type) {
             ProjectType.HOME -> {
                 cardHome.setBackgroundResource(R.drawable.bg_card_selected)
@@ -605,9 +559,6 @@ class SetupActivity : AppCompatActivity() {
             }
             else -> {} // Handle OTHER if needed
         }
-            cardFactory.setBackgroundResource(R.drawable.bg_card_selected)
-            ivFactory.setColorFilter(primaryColor)
-            tvFactory.setTextColor(primaryColor)
-        }
     }
-}
+    }
+

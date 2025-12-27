@@ -42,7 +42,7 @@
         android:layout_height="wrap_content"
         android:text="Keep Screen On"
         android:checked="false"
-        android:text="Dark Mode"
+
         android:textSize="14sp"
         android:layout_marginBottom="16dp" />
 

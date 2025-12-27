@@ -374,54 +374,7 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
         }
     }
 
-    private fun setupDrawerListener() {
-        drawerLayout.addDrawerListener(object : DrawerLayout.DrawerListener {
-            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
-                // STRICT LOCKING: Disable bottom sheet dragging if drawer is moved
-                if (slideOffset > 0.05f) {
-                    bottomSheetBehavior.isDraggable = false
 
-                    // Auto-collapse bottom sheet if it's open
-                    if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
-                        bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                    }
-                }
-            }
-
-        setupDrawerListener() // 設定側邊抽屜的滑動監聽器
-    }
-
-    // 設定視窗邊襯區的方法，確保內容不會被系統 UI 遮擋
-    private fun setupWindowInsets() { // 設定視窗邊襯區
-        ViewCompat.setOnApplyWindowInsetsListener(window.decorView.findViewById(android.R.id.content)) { view, insets -> // 為內容視圖設定邊襯區監聽器
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()) // 獲取系統列的尺寸
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom) // 為內容視圖設定內邊距
-            WindowInsetsCompat.CONSUMED // 表示邊襯區已被處理
-        }
-            override fun onDrawerOpened(drawerView: View) {
-                 // STRICT LOCKING: Ensure bottom sheet cannot be dragged
-                 bottomSheetBehavior.isDraggable = false
-
-                 // Ensure collapsed
-                 if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
-                     bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
-                 }
-            }
-
-            override fun onDrawerClosed(drawerView: View) {
-                 // Unlock bottom sheet when drawer is closed
-                 if (isEditMode) {
-                     bottomSheetBehavior.isDraggable = true
-                 }
-            }
-
-            override fun onDrawerStateChanged(newState: Int) {
-                 if (newState == DrawerLayout.STATE_DRAGGING) {
-                     bottomSheetBehavior.isDraggable = false
-                 }
-            }
-        })
-    }
 
 
     private fun loadProjectDetails(id: String) {
@@ -432,25 +385,7 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
         }
     }
 
-    private fun setupUI() {
-        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
-    setSupportActionBar(toolbar)
 
-    // Add Hamburger Menu Icon
-    toolbar.setNavigationIcon(R.drawable.ic_menu)
-    toolbar.setNavigationOnClickListener {
-        // Allow opening drawer even if bottom sheet is expanded
-        if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
-             bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
-        }
-
-        if (drawerLayout.isDrawerOpen(androidx.core.view.GravityCompat.START)) {
-            drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START)
-        } else {
-            Toast.makeText(this, "Project not found", Toast.LENGTH_SHORT).show()
-            finish()
-        }
-    }
 
     // v31: Refresh UI from cache when returning to activity
     // v31: Refresh UI logic merged into bottom onResume
@@ -502,6 +437,25 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
         containerLogs = findViewById(R.id.containerLogs)
         containerProperties = findViewById(R.id.containerProperties)
         bottomSheetBehavior = BottomSheetBehavior.from(findViewById(R.id.bottomSheet))
+
+        // Setup Toolbar
+        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+
+        // Add Hamburger Menu Icon
+        toolbar.setNavigationIcon(R.drawable.ic_menu)
+        toolbar.setNavigationOnClickListener {
+             // Allow opening drawer even if bottom sheet is expanded
+             if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) {
+                 bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+             }
+
+             if (drawerLayout.isDrawerOpen(androidx.core.view.GravityCompat.START)) {
+                 drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START)
+             } else {
+                 drawerLayout.openDrawer(androidx.core.view.GravityCompat.START)
+             }
+        }
 
         // v49: Ensure tvPropTopic is accessible if declared as lateinit property
         // But better to verify variable declaration first. I will assume I need to declare it.
@@ -559,23 +513,7 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
              startMqttConnection() // v46: Use shared helper to restart connection properly
         }
 
-        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar) // 獲取 Toolbar 物件
-        setSupportActionBar(toolbar) // 設定此 Toolbar 為 Activity 的 ActionBar
 
-        // 添加漢堡選單圖標（導航圖標）
-        toolbar.setNavigationIcon(R.drawable.ic_menu) // 設定導航圖標資源
-        toolbar.setNavigationOnClickListener {  // 設定導航（漢堡）按鈕的點擊監聽器
-            // 允許在底部面板展開時打開抽屜（如果需要的話先收起底下）
-            if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED) { // 如果底部面板已展開
-                 bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED // 將其收起
-            }
-
-            // 切換側邊抽屜的開啟/關閉狀態
-            if (drawerLayout.isDrawerOpen(androidx.core.view.GravityCompat.START)) { // 如果抽屜已開啟
-                drawerLayout.closeDrawer(androidx.core.view.GravityCompat.START) // 關閉抽屜
-            drawerLayout.openDrawer(androidx.core.view.GravityCompat.START)
-        }
-    }
 
         // Settings Button (Custom View)
         val btnSettings = findViewById<ImageView>(R.id.btnSettings)
@@ -630,7 +568,7 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
             } else {
                 drawerLayout.openDrawer(androidx.core.view.GravityCompat.START) // 開啟抽屜
             }
-        }
+
 
         // Status Dot Logic (Restored)
         val viewStatusDot = findViewById<View>(R.id.viewStatusDot)
@@ -661,21 +599,7 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
              }
         } // End of observe
 
-        // 設定按鈕（自定義 View，位於 Toolbar 上）
-        val btnSettings = findViewById<ImageView>(R.id.btnSettings) // 獲取設定按鈕
-        btnSettings.setOnClickListener { // 設定設定按鈕的點擊監聽器
-             if (projectId != null) { // 確保專案 ID 存在
-                try {
-                     // 使用反射方式啟動 SetupActivity（因為模組/包名結構可能變動）
-                     val intent = android.content.Intent(this, Class.forName("com.example.mqttpanelcraft.SetupActivity"))
-                     intent.putExtra("PROJECT_ID", projectId) // 傳遞專案 ID
-                     startActivity(intent) // 啟動設定頁面
 
-                } catch (e: Exception) {
-                    android.widget.Toast.makeText(this, "Setup Activity not found: ${e.message}", android.widget.Toast.LENGTH_SHORT).show() // 顯示錯誤訊息
-                }
-            }
-        }
 
         // 運行模式側邊欄動作（例如開關網格、深色模式）
         try {
@@ -704,22 +628,38 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
             switchDarkMode?.isChecked = (currentNightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES) // 如果是夜間模式，開關設為開啟
 
             // 設定深色模式開關的監聽器
+            // 設定深色模式開關的監聽器
             switchDarkMode?.setOnCheckedChangeListener { _, isChecked ->
-
-            switchKeepScreenOn?.setOnCheckedChangeListener { _, isChecked ->
                 if (isChecked) {
                     androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES) // 切換到深色模式
-                    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 } else {
                     androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO) // 切換到淺色模式
-                    window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 }
-                // 不要關閉抽屜，讓 onSaveInstanceState 處理狀態持久化（Activity 會重建）
-                // Save state
-                prefs.edit().putBoolean("keep_screen_on", isChecked).apply()
+                // Save state - assuming preference saving is handled elsewhere or not critical for this specific logic block correction
+                // If it was intended to save, it should be done here.
+                // However, the original code had nested listeners which was the main bug.
+                // I will assume minimal impact fix.
             }
+            
+            // Keep Screen On Switch logic
+            // Note: switchKeepScreenOn was defined at line 621 but used here. 
+            // The previous block was completely malformed.
+             val switchKeepScreenOn = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchKeepScreenOn)
+             
+            switchKeepScreenOn?.setOnCheckedChangeListener { _, isChecked ->
+                 if (isChecked) {
+                     window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                 } else {
+                     window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                 }
+                 prefs.edit().putBoolean("keep_screen_on", isChecked).apply()
+            }
+
         } catch (e: Exception) {
             // Log or ignore errors in dynamic UI setup
+            e.printStackTrace()
+        }
+        } catch (e: Exception) {
             e.printStackTrace()
         }
         // Drop Zone Listener (Delete)
@@ -891,66 +831,10 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
                              }
                         }
                     }
-                } catch (e: Exception) { }
-        drawerLayout = findViewById(R.id.drawerLayout)
-        editorCanvas = findViewById(R.id.editorCanvas)
-        guideOverlay = findViewById(R.id.guideOverlay)
-        fabMode = findViewById(R.id.fabMode)
-
-        containerLogs = findViewById(R.id.containerLogs)
-        containerProperties = findViewById(R.id.containerProperties)
-
-
-        val bottomSheet = findViewById<FrameLayout>(R.id.bottomSheet)
-        bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet)
-        bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
-
-        // Sidebar Actions
-        try { // Wrap in try-catch in case views are missing
-            val backgroundGrid = findViewById<View>(R.id.backgroundGrid)
-            val switchGridToggle = findViewById<SwitchMaterial>(R.id.switchGridToggle)
-
-            switchGridToggle?.setOnCheckedChangeListener { _, isChecked ->
-                backgroundGrid?.visibility = if (isChecked) View.VISIBLE else View.GONE
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (e: Exception) { }
         }
-
-
-        val bottomSheetScrim = findViewById<View>(R.id.bottomSheetScrim)
-        bottomSheetScrim?.setOnClickListener {
-            if (bottomSheetBehavior.state != BottomSheetBehavior.STATE_COLLAPSED) {
-                bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
-            }
-        }
-
-        // Update: Strict Mutual Exclusivity - Lock drawer if bottom sheet is expanded
-        bottomSheetBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
-            override fun onStateChanged(bottomSheet: View, newState: Int) {
-                if (newState == BottomSheetBehavior.STATE_DRAGGING || newState == BottomSheetBehavior.STATE_EXPANDED) {
-                     // Lock drawer closed -> REMOVED per user request
-                     // drawerLayout.setDrawerLockMode(androidx.drawerlayout.widget.DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
-                     bottomSheetScrim?.visibility = View.VISIBLE
-                } else if (newState == BottomSheetBehavior.STATE_COLLAPSED) {
-                     // Unlock drawer (only if in Edit Mode)
-                     if (isEditMode) {
-                         drawerLayout.setDrawerLockMode(androidx.drawerlayout.widget.DrawerLayout.LOCK_MODE_UNLOCKED)
-                     }
-                     bottomSheetScrim?.visibility = View.GONE
-                }
-            }
-            override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                // If sliding up, ensure drawer is locked -> REMOVED per user request
-                if (slideOffset > 0.05f) {
-                    // drawerLayout.setDrawerLockMode(androidx.drawerlayout.widget.DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
-                    bottomSheetScrim?.visibility = View.VISIBLE
-                    bottomSheetScrim?.alpha = slideOffset.coerceIn(0f, 1f)
-                } else {
-                     bottomSheetScrim?.visibility = View.GONE
-                }
-            }
-        })
+    }
+    }
 
 
     // region Topic Generation Helper
@@ -980,22 +864,10 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
         // Find existing indices for this type
         val existingIndices = mutableSetOf<Int>()
         for (i in 0 until editorCanvas.childCount) {
-             val child = editorCanvas.getChildAt(i)
-             if (child.tag == type) {
-                 val idx = componentIndices[child.id]
-                 if (idx != null) existingIndices.add(idx)
-             }
-        val bottomSheetHeader = findViewById<LinearLayout>(R.id.bottomSheetHeader)
-        bottomSheetHeader.setOnClickListener {
-            // Check if Drawer is open before allowing toggle
-            if (drawerLayout.isDrawerOpen(androidx.core.view.GravityCompat.START)) {
-                return@setOnClickListener
-            }
-
-            if (bottomSheetBehavior.state == BottomSheetBehavior.STATE_COLLAPSED) {
-                bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
-            } else {
-                bottomSheetBehavior.state = BottomSheetBehavior.STATE_COLLAPSED
+            val child = editorCanvas.getChildAt(i)
+            if (child.tag == type) {
+                val idx = componentIndices[child.id]
+                if (idx != null) existingIndices.add(idx)
             }
         }
         
@@ -1005,9 +877,6 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
             next++
         }
         return next
-
-        fabMode.setOnClickListener { toggleMode() }
-        updateModeUI()
     }
 
     override fun onCreateOptionsMenu(menu: android.view.Menu?): Boolean {
@@ -1034,10 +903,6 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
         etPropColor.setOnClickListener { showGradientColorPicker() } // 設定顏色輸入框的點擊事件（顯示顏色選擇器）
         etPropColor.isFocusable = false // v41: Fix API 26 requirement (was FOCUSABLE_AUTO)
         etPropColor.isFocusableInTouchMode = false // 禁止觸控模式下取得焦點（強制使用點擊事件）
-
-        etPropColor.setOnClickListener { showGradientColorPicker() }
-        etPropColor.focusable = View.FOCUSABLE_AUTO
-        etPropColor.isFocusableInTouchMode = false
 
         btnSaveProps.setOnClickListener {
             selectedView?.let { view -> // 確保有選中的組件 View
@@ -1415,26 +1280,10 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
                 if (event.rawX >= (etSearchComponents.right - etSearchComponents.compoundDrawables[2].bounds.width())) { // 判斷點擊是否在清除圖示區域
                     etSearchComponents.text.clear() // 清空搜尋文字
                     v.performClick() // 觸發標準點擊事件（為了無障礙功能）
-                    return@setOnTouchListener true // 已處理事件
-        editorCanvas.setOnDragListener { v, event ->
-            if (!isEditMode) return@setOnDragListener false
-            when (event.action) {
-                DragEvent.ACTION_DROP -> {
-                     handleDrop(event)
-                }
-                DragEvent.ACTION_DRAG_LOCATION -> {
-                     val localState = event.localState as? View
-                     if (localState != null && localState.parent == editorCanvas) {
-                         checkAlignment(event.x, event.y, localState)
-                     }
-                }
-                DragEvent.ACTION_DRAG_ENDED -> {
-                    guideOverlay.clear()
-                    val localState = event.localState as? View
-                    localState?.visibility = View.VISIBLE
+                    return@setOnTouchListener true
                 }
             }
-            false // 其他位置點擊不處理
+            false
         }
 
         // 設定文字變更監聽器（即時搜尋過濾）
@@ -1507,6 +1356,7 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
             true // 已處理事件
         }
     }
+
 
     private fun handleDrop(event: DragEvent) { // 處理拖曳放下事件
         val x = event.x // 獲取放下點的 X 座標
@@ -2036,7 +1886,7 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
     // So we can trust `currentView.x`.
     private fun checkAlignment(centerX: Float, centerY: Float, currentView: View) {
         guideOverlay.clear()
-        val threshold = snapThreshold * resources.displayMetrics.density
+
 
         val density = resources.displayMetrics.density
         val threshold = 2f * density // Drawing tolerance (smaller than snap to show exact match)
@@ -2205,8 +2055,9 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
             }
             editorCanvas.addView(labelView)
         }
-        return if (snapped) Point(bestX.toInt(), bestY.toInt()) else null
+
     }
+
 
     override fun onResume() {
         super.onResume()
@@ -2489,4 +2340,6 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
             updateComponentFromMqtt(topic, payload)
         }
     }
+
+
 }
