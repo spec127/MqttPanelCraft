@@ -89,4 +89,13 @@
         android:textSize="16sp"
         android:layout_marginBottom="8dp"/>
         
+    <!-- Close Ads (Test Feature) -->
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switchCloseAds"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Close Ads"
+        android:textSize="16sp"
+        android:layout_marginBottom="8dp"/>
+        
 </LinearLayout>

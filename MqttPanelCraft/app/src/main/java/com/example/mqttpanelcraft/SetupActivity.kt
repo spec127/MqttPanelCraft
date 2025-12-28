@@ -76,6 +76,8 @@ class SetupActivity : AppCompatActivity() {
             setupEditMode(projectId!!)
         } else {
              // Create Mode: Import is visible, Export is gone (default in XML)
+             // Create Mode Default: Label is Project Name (User Req 1)
+             findViewById<android.widget.TextView>(R.id.tvProjectIdLabel).text = "Project Name"
         }
 
         setupWindowInsets()
@@ -87,6 +89,29 @@ class SetupActivity : AppCompatActivity() {
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            
+            // vFix: Light Status Bar for SetupActivity
+            val isDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+            if (!isDark) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                     window.insetsController?.setSystemBarsAppearance(
+                         android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+                         android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                     )
+                } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                     @Suppress("DEPRECATION")
+                     window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                }
+            } else {
+                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                     window.insetsController?.setSystemBarsAppearance(0, android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS)
+                } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                     @Suppress("DEPRECATION")
+                     window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+                }
+            }
+            
             WindowInsetsCompat.CONSUMED
         }
         com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, findViewById(R.id.bannerAdContainer))
@@ -125,6 +150,9 @@ class SetupActivity : AppCompatActivity() {
                 .setNegativeButton("Cancel", null)
                 .show()
         }
+
+        // Edit Mode: Label is Project ID (User Req 1)
+        findViewById<android.widget.TextView>(R.id.tvProjectIdLabel).text = "Project ID"
 
         // v38: Copy ID to Clipboard
         tvProjectId.setOnClickListener {
@@ -294,6 +322,13 @@ class SetupActivity : AppCompatActivity() {
 
             // Store Structure
             pendingComponents = imported.components
+            
+            // vFix: Sanitize Imported IDs to prevent collisions and crashes
+            // Resetting to NO_ID causes restoreProjectState to generate fresh unique IDs.
+            pendingComponents?.forEach { 
+                it.id = android.view.View.NO_ID
+            }
+
             pendingCustomCode = imported.customCode
 
             android.widget.Toast.makeText(this, "Loaded ${imported.components.size} components!", android.widget.Toast.LENGTH_SHORT).show()
@@ -466,9 +501,15 @@ class SetupActivity : AppCompatActivity() {
             customCode = finalCustomCode
         )
 
-        // Unified Flow: Always Show Rewarded
+        // Unified Flow: Always Show Rewarded (unless disabled)
         val targetProjectId = newProject.id
         var isRewardEarned = false
+
+        if (com.example.mqttpanelcraft.utils.AdManager.isAdsDisabled) {
+             // Skip Ads
+             saveAndFinish(newProject, targetProjectId)
+             return
+        }
 
         if (com.example.mqttpanelcraft.utils.AdManager.isRewardedReady()) {
             com.example.mqttpanelcraft.utils.AdManager.showRewarded(this,
@@ -515,11 +556,16 @@ class SetupActivity : AppCompatActivity() {
         
         // If we want to open project immediately (optional, but standard flow usually returns to dashboard)
         // XML has "Save and Start" implies opening.
-        // Let's open it.
-        val intent = android.content.Intent(this, ProjectViewActivity::class.java)
-        intent.putExtra("PROJECT_ID", targetProjectId)
-        startActivity(intent)
-        finish()
+        val returnToHome = intent.getBooleanExtra("RETURN_TO_HOME", false)
+        
+        if (returnToHome) {
+             finish()
+        } else {
+             val intent = android.content.Intent(this, ProjectViewActivity::class.java)
+             intent.putExtra("PROJECT_ID", targetProjectId)
+             startActivity(intent)
+             finish()
+        }
     }
 
     private fun selectType(type: ProjectType) {

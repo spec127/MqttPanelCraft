@@ -31,7 +31,9 @@ class DashboardActivity : AppCompatActivity() {
 
     // v85: Sorting State
     // 0: Custom, 1: Name, 2: Date, 3: Last Opened
-    private var currentSortMode = 3 // Default: Last Opened (User feedback implies preference for simply finding projects)
+    // v85: Sorting State
+    // 1: Name Asc, 2: Name Desc, 3: Date New, 4: Date Old, 5: Last Opened
+    private var currentSortMode = 5
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +54,28 @@ class DashboardActivity : AppCompatActivity() {
                 // Apply padding to the content container inside Drawer (CoordinatorLayout is usually first child)
                 val content = binding.drawerLayout.getChildAt(0)
                 content.setPadding(0, bars.top, 0, 0)
+                
+                // vFix: Light Status Bar for Dashboard
+                val isDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+                if (!isDark) {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                         window.insetsController?.setSystemBarsAppearance(
+                             android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+                             android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                         )
+                    } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                         @Suppress("DEPRECATION")
+                         window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                    }
+                } else {
+                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                         window.insetsController?.setSystemBarsAppearance(0, android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS)
+                    } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                         @Suppress("DEPRECATION")
+                         window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+                    }
+                }
+
                 androidx.core.view.WindowInsetsCompat.CONSUMED
             }
 
@@ -60,7 +84,14 @@ class DashboardActivity : AppCompatActivity() {
 
             // Initialize Ads
             com.example.mqttpanelcraft.utils.AdManager.initialize(this)
+            // Initialize Ads
+            com.example.mqttpanelcraft.utils.AdManager.initialize(this)
             com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer)
+
+            // Load Persistent Sort Mode
+            val prefs = getSharedPreferences("AppSettings", MODE_PRIVATE)
+            currentSortMode = prefs.getInt("sort_mode", 5)
+            applySortMode(currentSortMode)
 
         } catch (e: Exception) {
             CrashLogger.logError(this, "Dashboard Init Failed", e)
@@ -106,7 +137,19 @@ class DashboardActivity : AppCompatActivity() {
         switchDarkMode?.setOnCheckedChangeListener { _, isChecked ->
             val mode = if (isChecked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
             AppCompatDelegate.setDefaultNightMode(mode)
-            // No need to restart immediately, delegate handles it or wait for recreation
+            
+            // Save Preference
+            val prefs = getSharedPreferences("AppSettings", MODE_PRIVATE)
+            prefs.edit().putBoolean("dark_mode", isChecked).apply()
+        }
+
+        // Setup Close Ads Switch
+        val switchCloseAds = bottomSheetDialog.findViewById<SwitchMaterial>(R.id.switchCloseAds)
+        switchCloseAds?.isChecked = com.example.mqttpanelcraft.utils.AdManager.isAdsDisabled
+        switchCloseAds?.setOnCheckedChangeListener { _, isChecked ->
+            com.example.mqttpanelcraft.utils.AdManager.setDisabled(isChecked, this)
+            // Reload Banner immediately to reflect change (hide or show)
+            com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer)
         }
 
         // Setup Language Dropdown
@@ -121,40 +164,26 @@ class DashboardActivity : AppCompatActivity() {
         // Setup Sort RadioGroup
         val radioGroupSort = bottomSheetDialog.findViewById<android.widget.RadioGroup>(R.id.radioGroupSort)
 
-        // Initialize radio state (check based on simple logic or leave unchecked? Let's check "Name" by default if user asks, but strictly we don't know state.
-        // Actually, user just wants to SORT.
-        // We can leave checks alone or manage currentSortMode as "Last Action" indicator if we want.
-        // For simplicity:
+        // Initialize radio state
         when (currentSortMode) {
-            1 -> radioGroupSort?.check(R.id.rbSortNameAsc) // Default to Asc?
-            2 -> radioGroupSort?.check(R.id.rbSortDateNew)
-            3 -> radioGroupSort?.check(R.id.rbSortLastOpened)
+            1 -> radioGroupSort?.check(R.id.rbSortNameAsc)
+            2 -> radioGroupSort?.check(R.id.rbSortNameDesc)
+            3 -> radioGroupSort?.check(R.id.rbSortDateNew)
+            4 -> radioGroupSort?.check(R.id.rbSortDateOld)
+            5 -> radioGroupSort?.check(R.id.rbSortLastOpened)
         }
 
         radioGroupSort?.setOnCheckedChangeListener { _, checkedId ->
-            when (checkedId) {
-                R.id.rbSortNameAsc -> {
-                    ProjectRepository.sortProjects(compareBy { it.name })
-                    currentSortMode = 1
-                }
-                R.id.rbSortNameDesc -> {
-                    ProjectRepository.sortProjects(compareByDescending { it.name })
-                    currentSortMode = 1
-                }
-                R.id.rbSortDateNew -> {
-                    ProjectRepository.sortProjects(compareByDescending { it.createdAt })
-                    currentSortMode = 2
-                }
-                R.id.rbSortDateOld -> {
-                    ProjectRepository.sortProjects(compareBy { it.createdAt })
-                    currentSortMode = 2
-                }
-                R.id.rbSortLastOpened -> {
-                    ProjectRepository.sortProjects(compareByDescending { it.lastOpenedAt })
-                    currentSortMode = 3
-                }
+            val newMode = when (checkedId) {
+                R.id.rbSortNameAsc -> 1
+                R.id.rbSortNameDesc -> 2
+                R.id.rbSortDateNew -> 3
+                R.id.rbSortDateOld -> 4
+                R.id.rbSortLastOpened -> 5
+                else -> 5
             }
-            loadProjects() // Reload list (now sorted in Repo)
+            applySortMode(newMode)
+            loadProjects()
         }
 
         dropdownLanguage?.setOnItemClickListener { _, _, position, _ ->
@@ -168,6 +197,20 @@ class DashboardActivity : AppCompatActivity() {
         }
         
         bottomSheetDialog.show()
+    }
+
+    private fun applySortMode(mode: Int) {
+        currentSortMode = mode
+        // Save to Prefs
+        getSharedPreferences("AppSettings", MODE_PRIVATE).edit().putInt("sort_mode", mode).apply()
+
+        when (mode) {
+            1 -> ProjectRepository.sortProjects(compareBy { it.name.lowercase() })
+            2 -> ProjectRepository.sortProjects(compareByDescending { it.name.lowercase() })
+            3 -> ProjectRepository.sortProjects(compareByDescending { it.createdAt })
+            4 -> ProjectRepository.sortProjects(compareBy { it.createdAt })
+            5 -> ProjectRepository.sortProjects(compareByDescending { it.lastOpenedAt })
+        }
     }
 
     private fun setLocale(languageCode: String, countryCode: String) {
@@ -206,6 +249,7 @@ class DashboardActivity : AppCompatActivity() {
                 if (action == "EDIT") {
                     val intent = Intent(this, SetupActivity::class.java)
                     intent.putExtra("PROJECT_ID", project.id)
+                    intent.putExtra("RETURN_TO_HOME", true)
                     startActivity(intent)
                 } else if (action == "DELETE") {
                     AlertDialog.Builder(this)

@@ -70,6 +70,7 @@
 
             <!-- Project ID -->
             <TextView
+                android:id="@+id/tvProjectIdLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Project ID"

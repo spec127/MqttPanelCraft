@@ -31,7 +31,7 @@
 
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-4344043793626988~1899848529"/>
 
         <activity
             android:name=".LoginActivity"

@@ -247,6 +247,7 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
             projectId = intent.getStringExtra("PROJECT_ID") // 從 Intent 中獲取傳遞過來的專案 ID
             if (projectId != null) {
                 loadProjectDetails(projectId!!) // 如果 ID 存在，載入專案詳細資訊
+                restoreProjectState() // Restore Components
             } else {
                 finish() // 如果沒有 ID，結束此 Activity
             }
@@ -349,6 +350,9 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
                 // If maxed, it stays at 60m (3600L)
                 val delay = if (currentIntervalIndex < intervals.size) intervals[currentIntervalIndex] else 600L
                 scheduleNext(delay)
+                
+                // vFix: Refresh Insets to prevent status bar overlap
+                setupWindowInsets()
             }
         }
     }
@@ -371,10 +375,35 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
         setupDrawerListener()
     }
 
+
+
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(window.decorView.findViewById(android.R.id.content)) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            
+            // v99: Fix Status Bar for Light Mode (Black Icons)
+            val isDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+            if (!isDark) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                     window.insetsController?.setSystemBarsAppearance(
+                         android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+                         android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                     )
+                } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                     @Suppress("DEPRECATION")
+                     window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                }
+            } else {
+                 // Clear for Dark Mode
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                     window.insetsController?.setSystemBarsAppearance(0, android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS)
+                } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                     @Suppress("DEPRECATION")
+                     window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+                }
+            }
+            
             WindowInsetsCompat.CONSUMED
         }
     }
@@ -384,11 +413,15 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
 
     private fun loadProjectDetails(id: String) {
         // ProjectRepository is a singleton object
-        project = ProjectRepository.getProjectById(id)
-        if (project != null) {
-            supportActionBar?.title = project!!.name
-            // vFix: Set Custom Title View
-            findViewById<android.widget.TextView>(R.id.tvToolbarTitle).text = project!!.name
+        val p = ProjectRepository.getProjectById(id)
+        if (p != null) {
+            project = p
+            supportActionBar?.title = p.name
+            // vFix: Set Custom Title View safely
+            findViewById<android.widget.TextView>(R.id.tvToolbarTitle).text = p.name
+        } else {
+            android.widget.Toast.makeText(this, "Project not found!", android.widget.Toast.LENGTH_SHORT).show()
+            finish()
         }
     }
 
@@ -565,7 +598,7 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
                 val intent = android.content.Intent(this, SetupActivity::class.java)
                 intent.putExtra("PROJECT_ID", projectId)
                 startActivity(intent)
-                finish()
+                // finish() // Fixed: Do not finish, so Back button returns here
             }
         }
 
@@ -2066,74 +2099,85 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
     }
 
     private fun restoreProjectState() {
-        val currentProject = project ?: return
-        android.util.Log.d("Persistence", "Restoring Project: ${currentProject.id}, Components: ${currentProject.components.size}")
-
-        if (currentProject.components.isEmpty()) return
-
-        // editorCanvas.removeAllViews() // Danger: Removes GuideOverlay?
-        // GuideOverlay is separate view? Check layout.
-        // XML shows editorCanvas is a FrameLayout. It likely has GuideOverlay as a child if added dynamically?
-        // Actually GuideOverlay is com.example.mqttpanelcraft.view.GuideOverlay in XML?
-        // Let's assume we clean up components.
-        // Better: Remove all views that have a Component Tag.
-        val toRemove = mutableListOf<View>()
-        for (i in 0 until editorCanvas.childCount) {
-            val v = editorCanvas.getChildAt(i)
-            if (v.tag is String) toRemove.add(v)
-        }
-        toRemove.forEach { editorCanvas.removeView(it) }
-
-
-
-        componentIndices.clear()
-        componentDataMap.clear() // v80: Clear map
-
-        for (comp in currentProject.components) {
-            val newView = createComponentView(comp.type)
-            newView.id = comp.id
-            if (newView.id == View.NO_ID) newView.id = View.generateViewId()
-
-            // Restore Indices logic
-            if (newView.id != View.NO_ID) {
-                // Try to parse index from label "Name 123"
-                val idx = comp.label.filter { it.isDigit() }.toIntOrNull() ?: 1
-                componentIndices[newView.id] = idx
+        try {
+            val currentProject = project ?: return
+            android.util.Log.d("Persistence", "Restoring Project: ${currentProject.id}, Components: ${currentProject.components.size}")
+            
+            // Safety check for EditorCanvas (in case not initialized)
+            if (findViewById<android.view.View>(R.id.editorCanvas) == null) {
+                android.util.Log.e("Persistence", "EditorCanvas Not Found!")
+                return
             }
 
-            val params = FrameLayout.LayoutParams(comp.width, comp.height)
-            newView.layoutParams = params
-            newView.x = comp.x
-            newView.y = comp.y
+            if (currentProject.components.isEmpty()) return
 
-            editorCanvas.addView(newView)
-
-            makeDraggable(newView)
-
-            // v80: Populate Map
-            componentDataMap[newView.id] = comp
-
-            // Recreate Label
-            val labelView = TextView(this).apply {
-                id = View.generateViewId()
-                text = comp.label
-                textSize = 10f
-                gravity = Gravity.CENTER
-                setTextColor(Color.DKGRAY)
-                setTag("LABEL_FOR_${newView.id}")
-
-                val labelParams = FrameLayout.LayoutParams(
-                    comp.width,
-                    ConstraintLayout.LayoutParams.WRAP_CONTENT
-                )
-                layoutParams = labelParams
-                this.x = newView.x
-                this.y = newView.y + comp.height + 4
+            val toRemove = mutableListOf<View>()
+            for (i in 0 until editorCanvas.childCount) {
+                val v = editorCanvas.getChildAt(i)
+                if (v.tag is String) toRemove.add(v)
             }
-            editorCanvas.addView(labelView)
-        }
+            toRemove.forEach { editorCanvas.removeView(it) }
 
+            componentIndices.clear()
+            componentDataMap.clear()
+
+            for (comp in currentProject.components) {
+                // Defensive: If type is missing
+                if (comp.type.isNullOrEmpty()) continue
+
+                val newView = createComponentView(comp.type)
+                
+                // vFix: Handle ID collision or invalid ID
+                if (comp.id == View.NO_ID || findViewById<View>(comp.id) != null) {
+                     newView.id = View.generateViewId()
+                } else {
+                     newView.id = comp.id
+                }
+
+                // Restore Indices logic
+                if (newView.id != View.NO_ID) {
+                    val idx = comp.label.filter { it.isDigit() }.toIntOrNull() ?: 1
+                    componentIndices[newView.id] = idx
+                }
+
+                val params = FrameLayout.LayoutParams(comp.width, comp.height)
+                newView.layoutParams = params
+                newView.x = comp.x
+                newView.y = comp.y
+
+                editorCanvas.addView(newView)
+
+                makeDraggable(newView)
+
+                // Update comp ID to match View ID if changed
+                comp.id = newView.id
+                componentDataMap[newView.id] = comp
+
+                // Recreate Label
+                val labelView = TextView(this).apply {
+                    id = View.generateViewId()
+                    text = comp.label
+                    textSize = 10f
+                    gravity = Gravity.CENTER
+                    setTextColor(Color.DKGRAY)
+                    setTag("LABEL_FOR_${newView.id}")
+
+                    val labelParams = FrameLayout.LayoutParams(
+                        comp.width,
+                        ConstraintLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    layoutParams = labelParams
+                    this.x = newView.x
+                    this.y = newView.y + comp.height + 4
+                }
+                editorCanvas.addView(labelView)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("Persistence", "Restore Failed", e)
+            android.widget.Toast.makeText(this, "Error restoring components: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+        }
     }
+
 
 
     override fun onResume() {
@@ -2151,6 +2195,10 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
                 val oldBroker = project!!.broker
                 val oldPort = project!!.port
                 project = fresh // Update local reference
+                
+                // Refresh Toolbar Title (in case name changed)
+                findViewById<android.widget.TextView>(R.id.tvToolbarTitle).text = project!!.name
+                
                 performFullSync() // Merged from v35
 
                 // Connection Check
@@ -2172,12 +2220,19 @@ class ProjectViewActivity : AppCompatActivity(), MqttRepository.MessageListener 
                 }
             }
         }
+        
+        // v98: Restart Idle Ad if running
+        if (!isEditMode) {
+             idleAdController.start()
+        }
     }
 
     override fun onPause() {
         super.onPause()
         // v95: Unregister Listener
         MqttRepository.unregisterListener(this)
+        // v98: Stop Idle Ad Controller to prevent showing ads when navigating to Setup
+        idleAdController.stop()
         saveProjectState()
     }
 

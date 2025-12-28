@@ -1,7 +1,7 @@
 package com.example.mqttpanelcraft.model
 
 data class ComponentData(
-    val id: Int,
+    var id: Int,
     val type: String,
     var x: Float,
     var y: Float,

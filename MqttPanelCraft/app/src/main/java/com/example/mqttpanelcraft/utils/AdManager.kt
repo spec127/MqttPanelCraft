@@ -24,28 +24,48 @@ object AdManager {
 
     private const val TAG = "AdManager"
 
-    // Test Ad Unit IDs
-    const val BANNER_AD_ID = "ca-app-pub-3940256099942544/6300978111"
-    const val INTERSTITIAL_AD_ID = "ca-app-pub-3940256099942544/1033173712"
-    const val REWARDED_AD_ID = "ca-app-pub-3940256099942544/5224354917"
+    // Real Ad Unit IDs (User Provided)
+    const val BANNER_AD_ID = "ca-app-pub-4344043793626988/3938962153"
+    const val INTERSTITIAL_AD_ID = "ca-app-pub-4344043793626988/5500182186"
+    const val REWARDED_AD_ID = "ca-app-pub-4344043793626988/4187100512"
 
     private var interstitialAd: InterstitialAd? = null
     private var rewardedAd: RewardedAd? = null
+    
+    var isAdsDisabled = false
 
     fun initialize(context: android.content.Context) {
-        MobileAds.initialize(context) { status ->
-            Log.d(TAG, "AdMob Initialized: ${status.adapterStatusMap}")
+        val prefs = context.getSharedPreferences("AppSettings", android.content.Context.MODE_PRIVATE)
+        isAdsDisabled = prefs.getBoolean("ads_disabled", false)
+        Log.d(TAG, "Ads Disabled: $isAdsDisabled")
+
+        if (!isAdsDisabled) {
+            MobileAds.initialize(context) { status ->
+                Log.d(TAG, "AdMob Initialized: ${status.adapterStatusMap}")
+            }
+        }
+    }
+    
+    fun setDisabled(disabled: Boolean, context: android.content.Context) {
+        isAdsDisabled = disabled
+        context.getSharedPreferences("AppSettings", android.content.Context.MODE_PRIVATE)
+            .edit().putBoolean("ads_disabled", disabled).apply()
+        
+        if (!disabled) {
+             // Re-init if re-enabled
+             initialize(context)
         }
     }
 
     // --- Banner Ads ---
     
-    /**
-     * Loads a banner ad into the provided container with a close button.
-     * @param activity The activity context.
-     * @param container The FrameLayout container to hold the ad.
-     */
     fun loadBannerAd(activity: Activity, container: FrameLayout) {
+        if (isAdsDisabled) {
+            container.visibility = View.GONE
+            container.removeAllViews()
+            return
+        }
+
         val adView = AdView(activity)
         adView.setAdSize(AdSize.BANNER)
         adView.adUnitId = BANNER_AD_ID
@@ -103,6 +123,10 @@ object AdManager {
     // --- Interstitial Ads ---
 
     fun loadInterstitial(context: android.content.Context) {
+        if (isAdsDisabled) {
+            interstitialAd = null
+            return
+        }
         val adRequest = AdRequest.Builder().build()
         InterstitialAd.load(context, INTERSTITIAL_AD_ID, adRequest, object : InterstitialAdLoadCallback() {
             override fun onAdFailedToLoad(adError: LoadAdError) {
@@ -118,12 +142,17 @@ object AdManager {
     }
 
     fun showInterstitial(activity: Activity, onAdClosed: () -> Unit = {}) {
+        if (isAdsDisabled) {
+             onAdClosed()
+             return
+        }
+
         if (interstitialAd != null) {
             interstitialAd?.fullScreenContentCallback = object : FullScreenContentCallback() {
                 override fun onAdDismissedFullScreenContent() {
                     Log.d(TAG, "Interstitial dismissed")
-                    interstitialAd = null // Invalidate
-                    loadInterstitial(activity) // Preload next
+                    interstitialAd = null
+                    loadInterstitial(activity)
                     onAdClosed()
                 }
 
@@ -132,15 +161,11 @@ object AdManager {
                     interstitialAd = null
                     onAdClosed()
                 }
-                
-                override fun onAdShowedFullScreenContent() {
-                     Log.d(TAG, "Interstitial showed")
-                }
             }
             interstitialAd?.show(activity)
         } else {
             Log.d(TAG, "Interstitial not ready")
-            loadInterstitial(activity) // Try loading for next time
+            loadInterstitial(activity)
             onAdClosed()
         }
     }
