@@ -144,7 +144,6 @@ class DashboardActivity : AppCompatActivity() {
 
         binding.navigationView.setNavigationItemSelectedListener { item ->
             when (item.itemId) {
-                R.id.nav_settings -> showSettingsBottomSheet()
                 R.id.nav_about -> Toast.makeText(this, "About MqttPanelCraft v1.0", Toast.LENGTH_SHORT).show()
                 // Switches are handled by their own listeners
             }
