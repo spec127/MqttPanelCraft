@@ -15,6 +15,17 @@ class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // Restore Theme Preference
+        val prefs = getSharedPreferences("AppSettings", android.content.Context.MODE_PRIVATE)
+        val isDarkMode = prefs.getBoolean("dark_mode", false)
+        androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(
+            if (isDarkMode) androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+            else androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
+        )
+
+        // Init Data Layer
+        com.example.mqttpanelcraft.data.ProjectRepository.initialize(this)
+
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
             handleUncaughtException(thread, throwable)
         }

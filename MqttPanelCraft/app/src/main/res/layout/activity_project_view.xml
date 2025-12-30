@@ -4,6 +4,7 @@
     android:id="@+id/rootCoordinator"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
     tools:context=".ProjectViewActivity">
 
     <!-- AppBar (Z-Order: Top) -->
@@ -17,23 +18,39 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
-            app:popupTheme="@style/Theme.Helloworld.PopupOverlay" />
+            app:popupTheme="@style/Theme.Helloworld.PopupOverlay">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_gravity="center">
+
+                <TextView
+                    android:id="@+id/tvToolbarTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="@android:color/white"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:layout_marginEnd="8dp"/>
+
+                <!-- Status Dot -->
+                <View
+                    android:id="@+id/viewStatusDot"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:background="@drawable/shape_circle_green"
+                    android:backgroundTint="@android:color/darker_gray"/>
+            </LinearLayout>
+
+        </androidx.appcompat.widget.Toolbar>
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- Draggable Trash Bin (Overlay) -->
-    <ImageView
-        android:id="@+id/binTrash"
-        android:layout_width="58dp"
-        android:layout_height="58dp"
-        android:src="@android:drawable/ic_menu_delete"
-        android:padding="13dp"
-        app:tint="@android:color/white"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:layout_gravity="top|end"
-        android:layout_marginEnd="60dp"
-        android:elevation="10dp"
-        android:visibility="visible" />
+    <!-- Draggable Trash Bin REMOVED -->
 
     <!-- Settings Wrench (Overlay - replacing Custom Gear) -->
     <ImageView
@@ -48,6 +65,26 @@
         android:layout_marginEnd="0dp"
         android:elevation="10dp"
         android:visibility="visible" />
+        
+    <!-- Drop to Delete Zone (Overlay) -->
+    <FrameLayout
+        android:id="@+id/dropDeleteZone"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_delete_zone_circle"
+        android:visibility="gone"
+        android:elevation="20dp"
+        android:layout_gravity="center_horizontal|bottom">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✕"
+            android:textColor="#FFFFFF"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:layout_gravity="center"/>
+    </FrameLayout>
 
     <!-- DrawerLayout (Below AppBar) -->
     <androidx.drawerlayout.widget.DrawerLayout
@@ -76,7 +113,8 @@
                     <com.example.mqttpanelcraft.ui.GridPatternView
                         android:id="@+id/backgroundGrid"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"/>
+                        android:layout_height="match_parent"
+                        android:visibility="gone"/>
                     
                     <!-- Guidelines Overlay -->
                      <com.example.mqttpanelcraft.ui.AlignmentOverlayView
@@ -119,65 +157,112 @@
                 android:layout_width="match_parent"
                 android:layout_height="400dp"
                 android:background="@drawable/bg_bottom_sheet"
-                app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior"
+                app:layout_behavior="com.example.mqttpanelcraft.ui.LockableBottomSheetBehavior"
                 app:behavior_peekHeight="30dp">
                 
-                <!-- Drag Handle / Header -->
-                 <LinearLayout
-                    android:id="@+id/bottomSheetHeader"
-                    android:clickable="true"
-                    android:focusable="true"
+                <!-- Wrapper for all content -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:orientation="vertical">
                     
-                     <ImageView
-                        android:layout_width="40dp"
-                        android:layout_height="4dp"
-                        android:layout_gravity="center_horizontal"
-                        android:layout_marginTop="8dp"
-                        android:src="@drawable/ic_drag_handle" 
-                        app:tint="#CCCCCC" /> 
+                    <!-- Drag Handle / Header (ONLY this part should be interactive) -->
+                    <FrameLayout
+                        android:id="@+id/bottomSheetHeader"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:layout_width="match_parent"
+                        android:layout_height="30dp">
+                        
+                        <ImageView
+                            android:layout_width="40dp"
+                            android:layout_height="4dp"
+                            android:layout_gravity="center_horizontal"
+                            android:layout_marginTop="8dp"
+                            android:src="@drawable/ic_drag_handle" 
+                            app:tint="#CCCCCC" />
+                    </FrameLayout>
+                    
+                    <!-- Content Area (NOT part of header) -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1">
+                        
+                        <!-- CONTAINER: Logs -->
+                        <LinearLayout
+                            android:id="@+id/containerLogs"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:orientation="vertical"
+                            android:padding="8dp"
+                            android:clickable="true"
+                            android:focusable="true">
+                            
+                            <TextView
+                                android:text="MQTT/System Logs"
+                                android:textStyle="bold"
+                                android:textColor="@color/sidebar_section_header"
+                                android:padding="8dp"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"/>
+                                
+                            <androidx.recyclerview.widget.RecyclerView
+                                android:id="@+id/rvConsoleLogs"
+                                android:layout_width="match_parent"
+                                android:layout_height="0dp"
+                                android:layout_weight="1"/>
+                                
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="vertical">
+                                
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal">
+                                    <EditText 
+                                        android:id="@+id/etConsoleTopic" 
+                                        android:layout_width="0dp" 
+                                        android:layout_weight="1" 
+                                        android:layout_height="wrap_content" 
+                                        android:hint="Topic"/>
+                                    <Button 
+                                        android:id="@+id/btnConsoleSubscribe" 
+                                        android:layout_width="wrap_content" 
+                                        android:layout_height="wrap_content" 
+                                        android:text="Sub"/>
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal">
+                                    <EditText 
+                                        android:id="@+id/etConsolePayload" 
+                                        android:layout_width="0dp" 
+                                        android:layout_weight="1" 
+                                        android:layout_height="wrap_content" 
+                                        android:hint="Payload"/>
+                                    <Button 
+                                        android:id="@+id/btnConsoleSend" 
+                                        android:layout_width="wrap_content" 
+                                        android:layout_height="wrap_content" 
+                                        android:text="Send"/>
+                                </LinearLayout>
+                            </LinearLayout>
+                        </LinearLayout>
                      
-                     <!-- CONTAINER: Logs -->
-                     <LinearLayout
-                         android:id="@+id/containerLogs"
-                         android:layout_width="match_parent"
-                         android:layout_height="match_parent"
-                         android:orientation="vertical"
-                         android:padding="8dp">
-                         
-                         <TextView
-                             android:text="MQTT/System Logs"
-                             android:textStyle="bold"
-                             android:textColor="@color/sidebar_section_header"
-                             android:padding="8dp"
-                             android:layout_width="match_parent"
-                             android:layout_height="wrap_content"/>
-                             
-                         <androidx.recyclerview.widget.RecyclerView
-                             android:id="@+id/rvConsoleLogs"
-                             android:layout_width="match_parent"
-                             android:layout_height="0dp"
-                             android:layout_weight="1"/>
-                             
-                         <LinearLayout
-                             android:layout_width="match_parent"
-                             android:layout_height="wrap_content"
-                             android:orientation="horizontal">
-                             <EditText android:id="@+id/etConsoleTopic" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="Topic"/>
-                             <EditText android:id="@+id/etConsolePayload" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:hint="Payload"/>
-                             <Button android:id="@+id/btnConsoleSend" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Send"/>
-                         </LinearLayout>
-                     </LinearLayout>
-                     
-                     <!-- CONTAINER: Properties (Hidden by default) -->
-                     <ScrollView
-                         android:id="@+id/containerProperties"
-                         android:layout_width="match_parent"
-                         android:layout_height="match_parent"
-                         android:visibility="gone"
-                         android:padding="16dp">
+                        <!-- CONTAINER: Properties (Hidden by default) -->
+                        <ScrollView
+                            android:id="@+id/containerProperties"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:visibility="gone"
+                            android:padding="16dp"
+                            android:clickable="true"
+                            android:focusable="true">
                          
                          <LinearLayout
                              android:layout_width="match_parent"
@@ -249,18 +334,56 @@
                                      android:layout_width="match_parent"
                                      android:layout_height="wrap_content"/>
                              </com.google.android.material.textfield.TextInputLayout>
-        
-                             <!-- Topic (Control) -->
-                              <com.google.android.material.textfield.TextInputLayout
+
+                             <!-- Test Topic (Simultaneous Sub) -->
+                             <com.google.android.material.textfield.TextInputLayout
                                  android:layout_width="match_parent"
                                  android:layout_height="wrap_content"
-                                 android:hint="MQTT Topic"
+                                 android:hint="Test Topic (Simultaneous Sub)"
                                  android:layout_marginBottom="8dp">
                                  <com.google.android.material.textfield.TextInputEditText
-                                     android:id="@+id/etPropTopic"
+                                     android:id="@+id/etPropTopicConfig"
                                      android:layout_width="match_parent"
                                      android:layout_height="wrap_content"/>
                              </com.google.android.material.textfield.TextInputLayout>
+                             
+
+                             <!-- Compression (Camera Only) -->
+                             <LinearLayout
+                                 android:id="@+id/containerCompression"
+                                 android:layout_width="match_parent"
+                                 android:layout_height="wrap_content"
+                                 android:orientation="vertical"
+                                 android:visibility="gone"
+                                 android:layout_marginBottom="8dp">
+                                 <TextView
+                                     android:layout_width="wrap_content"
+                                     android:layout_height="wrap_content"
+                                     android:text="Image Quality (1-5)"
+                                     android:textColor="@color/sidebar_text_secondary"/>
+                                 <com.google.android.material.slider.Slider
+                                     android:id="@+id/sliderCompression"
+                                     android:layout_width="match_parent"
+                                     android:layout_height="wrap_content"
+                                     android:valueFrom="1.0"
+                                     android:valueTo="5.0"
+                                     android:stepSize="1.0"
+                                     android:value="3.0"/>
+                             </LinearLayout>
+        
+                             <!-- Topic (Control - ReadOnly) -->
+                             <TextView
+                                 android:id="@+id/tvPropTopic"
+                                 android:layout_width="match_parent"
+                                 android:layout_height="wrap_content"
+                                 android:text="Topic: "
+                                 android:layout_marginBottom="8dp"
+                                 android:padding="8dp"
+                                 android:background="#EEE"
+                                 android:textColor="#333"
+                                 android:fontFamily="monospace"/>
+
+
         
                              <Button
                                  android:id="@+id/btnSaveProps"
@@ -268,10 +391,29 @@
                                  android:layout_height="wrap_content"
                                  android:text="Apply Changes"/>
                              
-                         </LinearLayout>
-                     </ScrollView>
-        
+                             <LinearLayout
+                         android:layout_width="match_parent"
+                         android:layout_height="wrap_content"
+                         android:orientation="horizontal"
+                         android:layout_marginTop="8dp">
+
+                         <Button
+                             android:id="@+id/btnClone"
+                             android:layout_width="0dp"
+                             android:layout_weight="1"
+                             android:layout_height="wrap_content"
+                             android:text="Clone"
+                             android:layout_marginEnd="8dp"
+                             style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+
+
+                     </LinearLayout>
+                     
                  </LinearLayout>
+                     </ScrollView>
+                     
+                   </FrameLayout>
+               </LinearLayout>
             </FrameLayout>
             
             <!-- Mode Toggle FAB -->

@@ -26,6 +26,8 @@ class LogAdapter : RecyclerView.Adapter<LogAdapter.ViewHolder>() {
         val text = items[position]
         holder.textView.text = text
         holder.textView.textSize = 12f
+        holder.textView.maxLines = 3
+        holder.textView.ellipsize = android.text.TextUtils.TruncateAt.END
         
         // Simple logic to colorize RX/TX
         when {

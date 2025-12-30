@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="24dp"
-    android:background="@color/surface_color">
+    android:background="?attr/colorSurface">
 
     <TextView
         android:layout_width="wrap_content"
@@ -13,43 +12,90 @@
         android:text="Settings"
         android:textSize="20sp"
         android:textStyle="bold"
-        android:textColor="@color/black"
-        android:layout_marginBottom="24dp"/>
+        android:layout_marginBottom="24dp"
+        android:textColor="?attr/colorOnSurface"/>
 
-    <com.google.android.material.textfield.TextInputLayout
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+    <!-- Sort Order -->
+    <TextView
+        android:id="@+id/tvSortLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Sort Projects By"
+        android:textSize="14sp"
+        android:textColor="#757575"
+        android:layout_marginBottom="8dp"/>
+
+    <RadioGroup
+        android:id="@+id/radioGroupSort"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Language">
+        android:layout_marginBottom="24dp"
+        android:orientation="vertical">
+        
+
+            
+        <RadioButton
+            android:id="@+id/rbSortNameAsc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Name (A-Z)"/>
+            
+        <RadioButton
+            android:id="@+id/rbSortNameDesc"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Name (Z-A)"/>
+            
+        <RadioButton
+            android:id="@+id/rbSortDateNew"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Date (Newest)"/>
+
+        <RadioButton
+            android:id="@+id/rbSortDateOld"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Date (Oldest)"/>
+            
+        <RadioButton
+            android:id="@+id/rbSortLastOpened"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Last Opened"/>
+    </RadioGroup>
+
+    <!-- Language -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Language"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        android:layout_marginBottom="16dp">
 
         <AutoCompleteTextView
             android:id="@+id/dropdownLanguage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="none"
-            android:text="English" />
+            android:inputType="none"/>
     </com.google.android.material.textfield.TextInputLayout>
-    
-    <LinearLayout
+
+    <!-- Dark Mode -->
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switchDarkMode"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginTop="24dp">
+        android:text="Dark Mode"
+        android:textSize="16sp"
+        android:layout_marginBottom="8dp"/>
         
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Dark Mode"
-            android:textSize="16sp"
-            android:textColor="@color/black"/>
-            
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/switchDarkMode"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-            
-    </LinearLayout>
-
+    <!-- Close Ads (Test Feature) -->
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switchCloseAds"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Close Ads"
+        android:textSize="16sp"
+        android:layout_marginBottom="8dp"/>
+        
 </LinearLayout>

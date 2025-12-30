@@ -44,15 +44,89 @@ object MqttRepository {
         _logs.postValue(ArrayList(_logHistory))
     }
 
+    data class RawMessage(val topic: String, val payload: String)
+    // private val _messageReceived = SingleLiveEvent<RawMessage>() // Removed unused/unresolved
+    // Let's stick to MutableLiveData for simplicity, but beware of multiple observers if not handled carefully.
+    // Ideally use a SharedFlow but sticking to LiveData as per existing code style.
+    private val _latestMessage = MutableLiveData<RawMessage>()
+    val latestMessage: LiveData<RawMessage> = _latestMessage
+
+    // Multi-Project Support
+    var activeProjectId: String? = null
+    private val cachedStates = ConcurrentHashMap<String, String>() // Topic -> Payload
+
+    fun getTopicState(topic: String): String? {
+        return cachedStates[topic]
+    }
+
+    // Listener Interface for Zero-Loss Message Handling
+    interface MessageListener {
+        fun onMessageReceived(topic: String, payload: String)
+    }
+
+    private val listeners = java.util.concurrent.CopyOnWriteArrayList<MessageListener>()
+
+    fun registerListener(listener: MessageListener) {
+        if (!listeners.contains(listener)) listeners.add(listener)
+    }
+
+    fun unregisterListener(listener: MessageListener) {
+        listeners.remove(listener)
+    }
+
     fun processMessage(topic: String?, payload: String, timestamp: String) {
         if (topic == null) return
         
-        addLog("RX [$topic]: $payload", timestamp)
+        // Notify Listeners (Direct Call - Background Thread)
+        for (listener in listeners) {
+            try {
+                listener.onMessageReceived(topic, payload)
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+
+        _latestMessage.postValue(RawMessage(topic, payload))
+
+        // v29: Update Cache
+        cachedStates[topic] = payload
+
+        // v29: Log Filtering & v36: Relative Path Formatting
+        var shouldLog = true
+        var displayTopic = topic
+
+        if (activeProjectId != null) {
+            val parts = topic.split("/")
+            // Topic format: name/id/type/index/direction
+            // length check: project/id/type/index/dir >= 5
+            if (parts.size >= 5) {
+                val msgProjectId = parts[1]
+                if (msgProjectId != activeProjectId) {
+                    shouldLog = false
+                } else {
+                    // It IS our project, format as relative path: [type/index/dir]
+                    // parts[0]=name, [1]=id, [2]=type, [3]=index, [4]=dir
+                    displayTopic = "${parts[2]}/${parts[3]}/${parts[4]}"
+                }
+            } else if (parts.size >= 2) {
+                 // Fallback for partial topics
+                 val msgProjectId = parts[1]
+                 if (msgProjectId != activeProjectId) shouldLog = false
+            }
+        }
+
+        if (shouldLog) {
+            addLog("RX [$displayTopic]: $payload", timestamp)
+        }
 
         try {
             val parts = topic.split("/")
-            // Expected: account/project/type/id
-            if (parts.size >= 4) {
+            // Expected: name/id/type/index/dir
+            if (parts.size >= 5) {
+                // Determine if this message belongs to active project for Rich UI (DisplayItem)
+                val msgProjectId = parts[1]
+                if (activeProjectId != null && msgProjectId != activeProjectId) {
+                    return // Do not update Rich UI for background projects
+                }
+
                 val type = parts[2]
                 
                 when (type) {
@@ -60,7 +134,7 @@ object MqttRepository {
                         _displayItem.postValue(LogItem.Text(payload, timestamp))
                     }
                     "led" -> {
-                        val isOn = payload.contains("1") || payload.contains("true")
+                        val isOn = payload.contains("1") || payload.contains("true") || payload.equals("ON", true)
                         _displayItem.postValue(LogItem.Led(isOn, timestamp))
                     }
                     "image" -> {
@@ -87,15 +161,27 @@ object MqttRepository {
                                 // Clean up
                                 imageBuffer.remove(topic)
                                 imageTotals.remove(topic)
-                                addLog("Image reassembled for $topic", timestamp)
+                                if (shouldLog) {
+                                    addLog("Image reassembled for $topic", timestamp)
+                                }
                             }
                         }
                     }
                 }
             }
         } catch (e: Exception) {
-            addLog("Error processing message: ${e.message}", timestamp)
+            // Only log errors for active project or general errors
+             if (shouldLog) {
+                addLog("Error processing message: ${e.message}", timestamp)
+             }
         }
+    }
+    // Connection Status
+    private val _connectionStatus = MutableLiveData<Int>(0) // 0:Connecting/Gray, 1:Connected/Green, 2:Failed/Red
+    val connectionStatus: LiveData<Int> = _connectionStatus
+
+    fun setStatus(status: Int) {
+        _connectionStatus.postValue(status)
     }
 }
 
@@ -103,4 +189,11 @@ sealed class LogItem {
     data class Text(val content: String, val timestamp: String) : LogItem()
     data class Image(val base64: String, val timestamp: String) : LogItem()
     data class Led(val isOn: Boolean, val timestamp: String) : LogItem()
+}
+
+// Status Constants
+object MqttStatus {
+    const val CONNECTING = 0
+    const val CONNECTED = 1
+    const val FAILED = 2
 }

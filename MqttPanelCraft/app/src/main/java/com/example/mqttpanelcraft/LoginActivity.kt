@@ -2,6 +2,7 @@ package com.example.mqttpanelcraft
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -127,6 +128,12 @@ class LoginActivity : AppCompatActivity() {
         
         val switchDarkMode = bottomSheetDialog.findViewById<SwitchMaterial>(R.id.switchDarkMode)
         val dropdownLanguage = bottomSheetDialog.findViewById<AutoCompleteTextView>(R.id.dropdownLanguage)
+        
+        // vFix: Hide Sort Option in Login
+        val tvSortLabel = bottomSheetDialog.findViewById<TextView>(R.id.tvSortLabel)
+        val radioGroupSort = bottomSheetDialog.findViewById<android.widget.RadioGroup>(R.id.radioGroupSort)
+        tvSortLabel?.visibility = View.GONE
+        radioGroupSort?.visibility = View.GONE
         
         // Setup Dark Mode Switch
         val currentNightMode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK

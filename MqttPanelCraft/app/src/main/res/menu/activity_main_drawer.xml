@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/nav_settings"
-        android:icon="@drawable/ic_settings"
-        android:title="Settings" />
+        android:id="@+id/nav_dark_mode"
+        android:icon="@drawable/ic_theme" 
+        android:title="Dark Mode"
+        app:actionLayout="@layout/item_drawer_switch"
+        xmlns:app="http://schemas.android.com/apk/res-auto"/>
+    <item
+        android:id="@+id/nav_ads"
+        android:icon="@drawable/ic_ads_off"
+        android:title="Disable Ads"
+        app:actionLayout="@layout/item_drawer_switch"
+        xmlns:app="http://schemas.android.com/apk/res-auto"/>
     <item
         android:id="@+id/nav_about"
         android:icon="@drawable/ic_google"

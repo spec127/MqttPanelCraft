@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.mqttpanelcraft.adapter.ProjectAdapter
 import com.example.mqttpanelcraft.data.ProjectRepository
 import com.example.mqttpanelcraft.databinding.ActivityDashboardBinding
+import com.example.mqttpanelcraft.model.Project
 
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDelegate
@@ -16,15 +17,24 @@ import com.example.mqttpanelcraft.utils.CrashLogger
 import android.widget.ArrayAdapter
 import androidx.appcompat.app.AlertDialog
 import android.widget.AutoCompleteTextView
-import com.google.android.material.bottomsheet.BottomSheetDialog
+// Removed BottomSheet imports
 import com.google.android.material.switchmaterial.SwitchMaterial
+import kotlinx.coroutines.launch
 import java.util.Locale
+import kotlinx.coroutines.*
+import android.view.animation.RotateAnimation
 
 class DashboardActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityDashboardBinding
     private lateinit var projectAdapter: ProjectAdapter
     private var isGuest = false
+
+    // v85: Sorting State
+    // 0: Custom, 1: Name, 2: Date, 3: Last Opened
+    // v85: Sorting State
+    // 1: Name Asc, 2: Name Desc, 3: Date New, 4: Date Old, 5: Last Opened
+    private var currentSortMode = 5
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,6 +48,54 @@ class DashboardActivity : AppCompatActivity() {
             setupDrawer()
             setupRecyclerView()
             setupFab()
+
+            // Fix Status Bar Overlap
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.drawerLayout) { view, insets ->
+                val bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+                // Apply padding to the content container inside Drawer (CoordinatorLayout is usually first child)
+                val content = binding.drawerLayout.getChildAt(0)
+                content.setPadding(0, bars.top, 0, 0)
+
+                // vFix: Light Status Bar for Dashboard
+                val isDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+                if (!isDark) {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                         window.insetsController?.setSystemBarsAppearance(
+                             android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+                             android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                         )
+                    } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                         @Suppress("DEPRECATION")
+                         window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                    }
+                } else {
+                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                         window.insetsController?.setSystemBarsAppearance(0, android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS)
+                    } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                         @Suppress("DEPRECATION")
+                         window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
+                    }
+                }
+
+                androidx.core.view.WindowInsetsCompat.CONSUMED
+            }
+
+            // Initialize Data
+            ProjectRepository.initialize(this)
+
+            // Initialize Ads
+            com.example.mqttpanelcraft.utils.AdManager.initialize(this)
+            // Initialize Ads
+            com.example.mqttpanelcraft.utils.AdManager.initialize(this)
+            com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer)
+
+            // Load Persistent Sort Mode
+            val prefs = getSharedPreferences("AppSettings", MODE_PRIVATE)
+            currentSortMode = prefs.getInt("sort_mode", 5)
+            applySortMode(currentSortMode)
+
+            setupSettingsUI() // v96: New Expandable UI
+
         } catch (e: Exception) {
             CrashLogger.logError(this, "Dashboard Init Failed", e)
         }
@@ -46,6 +104,7 @@ class DashboardActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadProjects()
+        startConnectionCheck()
     }
 
     private fun setupToolbar() {
@@ -57,53 +116,117 @@ class DashboardActivity : AppCompatActivity() {
     }
 
     private fun setupDrawer() {
+        val menu = binding.navigationView.menu
+
+        // 1. Dark Mode Switch
+        val darkModeItem = menu.findItem(R.id.nav_dark_mode)
+        val switchDarkMode = darkModeItem.actionView?.findViewById<SwitchMaterial>(R.id.drawer_switch)
+
+        val currentNightMode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+        switchDarkMode?.isChecked = currentNightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES
+
+        switchDarkMode?.setOnCheckedChangeListener { _, isChecked ->
+            val mode = if (isChecked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+            AppCompatDelegate.setDefaultNightMode(mode)
+            getSharedPreferences("AppSettings", MODE_PRIVATE).edit().putBoolean("dark_mode", isChecked).apply()
+            // Close drawer after short delay or keep open? Usually better to keep open for switches.
+        }
+
+        // 2. Ads Switch
+        val adsItem = menu.findItem(R.id.nav_ads)
+        val switchAds = adsItem.actionView?.findViewById<SwitchMaterial>(R.id.drawer_switch)
+
+        switchAds?.isChecked = com.example.mqttpanelcraft.utils.AdManager.isAdsDisabled
+        switchAds?.setOnCheckedChangeListener { _, isChecked ->
+            com.example.mqttpanelcraft.utils.AdManager.setDisabled(isChecked, this)
+            com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer)
+        }
+
         binding.navigationView.setNavigationItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_settings -> showSettingsBottomSheet()
                 R.id.nav_about -> Toast.makeText(this, "About MqttPanelCraft v1.0", Toast.LENGTH_SHORT).show()
-                // Language/Dark Mode removed from here as per v3 plan
+                // Switches are handled by their own listeners
             }
-            binding.drawerLayout.closeDrawer(GravityCompat.START)
+            if (item.itemId == R.id.nav_about) {
+                 binding.drawerLayout.closeDrawer(GravityCompat.START)
+            }
             true
         }
     }
 
-    private fun showSettingsBottomSheet() {
-        val bottomSheetDialog = BottomSheetDialog(this)
-        bottomSheetDialog.setContentView(R.layout.bottom_sheet_settings)
-        
-        val switchDarkMode = bottomSheetDialog.findViewById<SwitchMaterial>(R.id.switchDarkMode)
-        val dropdownLanguage = bottomSheetDialog.findViewById<AutoCompleteTextView>(R.id.dropdownLanguage)
-        
-        // Setup Dark Mode Switch
-        val currentNightMode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
-        switchDarkMode?.isChecked = currentNightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES
-        switchDarkMode?.setOnCheckedChangeListener { _, isChecked ->
-            val mode = if (isChecked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
-            AppCompatDelegate.setDefaultNightMode(mode)
-            // No need to restart immediately, delegate handles it or wait for recreation
-        }
+    private fun setupSettingsUI() {
+        // 1. Expand/Collapse Logic
+        val header = findViewById<View>(R.id.layoutSettingsHeader)
+        val content = findViewById<View>(R.id.layoutSettingsContent)
+        val arrow = findViewById<android.widget.ImageView>(R.id.ivSettingsArrow)
+        val tvTitle = findViewById<android.widget.TextView>(R.id.tvSettingsTitle)
 
-        // Setup Language Dropdown
-        val languages = listOf("English", "繁體中文")
-        val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, languages)
-        dropdownLanguage?.setAdapter(adapter)
-        
-        // Set current selection
-        val currentLang = if (resources.configuration.locales[0].language == "zh") "繁體中文" else "English"
-        dropdownLanguage?.setText(currentLang, false)
-        
-        dropdownLanguage?.setOnItemClickListener { _, _, position, _ ->
-            val selected = languages[position]
-            if (selected != currentLang) {
-                val localeCode = if (selected == "繁體中文") "zh" else "en"
-                val regionCode = if (selected == "繁體中文") "TW" else "US"
-                setLocale(localeCode, regionCode)
-                bottomSheetDialog.dismiss()
+        updateSettingsTitle(tvTitle) // Set initial title
+
+        header.setOnClickListener {
+            if (content.visibility == View.VISIBLE) {
+                // Collapse
+                content.visibility = View.GONE
+                arrow.animate().rotation(270f).setDuration(200).start()
+            } else {
+                // Expand
+                content.visibility = View.VISIBLE
+                arrow.animate().rotation(90f).setDuration(200).start()
             }
         }
-        
-        bottomSheetDialog.show()
+
+        // 2. Sort Logic
+        val radioGroupSort = findViewById<android.widget.RadioGroup>(R.id.radioGroupSort)
+        when (currentSortMode) {
+            1 -> radioGroupSort?.check(R.id.rbSortNameAsc)
+            2 -> radioGroupSort?.check(R.id.rbSortNameDesc)
+            3 -> radioGroupSort?.check(R.id.rbSortDateNew)
+            4 -> radioGroupSort?.check(R.id.rbSortDateOld)
+            5 -> radioGroupSort?.check(R.id.rbSortLastOpened)
+        }
+
+        radioGroupSort?.setOnCheckedChangeListener { _, checkedId ->
+            val newMode = when (checkedId) {
+                R.id.rbSortNameAsc -> 1
+                R.id.rbSortNameDesc -> 2
+                R.id.rbSortDateNew -> 3
+                R.id.rbSortDateOld -> 4
+                R.id.rbSortLastOpened -> 5
+                else -> 5
+            }
+            applySortMode(newMode)
+            loadProjects()
+            updateSettingsTitle(tvTitle) // Update title on change
+        }
+
+        // Dark Mode & Ads removed from here (moved to Drawer)
+    }
+
+    private fun updateSettingsTitle(tv: android.widget.TextView) {
+        val modeText = when(currentSortMode) {
+            1 -> "Name (A-Z)"
+            2 -> "Name (Z-A)"
+            3 -> "Date (Newest)"
+            4 -> "Date (Oldest)"
+            5 -> "Last Opened"
+            else -> "Unknown"
+        }
+        tv.text = "Sort: $modeText / Settings"
+    }
+
+    private fun applySortMode(mode: Int) {
+        currentSortMode = mode
+        // Save to Prefs
+        getSharedPreferences("AppSettings", MODE_PRIVATE).edit().putInt("sort_mode", mode).apply()
+
+        when (mode) {
+            1 -> ProjectRepository.sortProjects(compareBy { it.name.lowercase() })
+            2 -> ProjectRepository.sortProjects(compareByDescending { it.name.lowercase() })
+            3 -> ProjectRepository.sortProjects(compareByDescending { it.createdAt })
+            4 -> ProjectRepository.sortProjects(compareBy { it.createdAt })
+            5 -> ProjectRepository.sortProjects(compareByDescending { it.lastOpenedAt })
+        }
     }
 
     private fun setLocale(languageCode: String, countryCode: String) {
@@ -122,9 +245,19 @@ class DashboardActivity : AppCompatActivity() {
     private fun setupRecyclerView() {
         projectAdapter = ProjectAdapter(emptyList(), 
             onProjectClick = { project ->
-                // On Item Click -> Open Project View
+                // Update Last Opened
+                project.lastOpenedAt = System.currentTimeMillis()
+                ProjectRepository.updateProject(project) // Save timestamp
+
+                // On Item Click -> Open Project View or WebView
                 Toast.makeText(this, "Opening ${project.name}...", Toast.LENGTH_SHORT).show()
-                val intent = Intent(this, ProjectViewActivity::class.java)
+                val targetActivity = if (project.type == com.example.mqttpanelcraft.model.ProjectType.WEBVIEW) {
+                    WebViewActivity::class.java
+                } else {
+                    ProjectViewActivity::class.java
+                }
+
+                val intent = Intent(this, targetActivity)
                 intent.putExtra("PROJECT_ID", project.id)
                 startActivity(intent)
             },
@@ -132,6 +265,7 @@ class DashboardActivity : AppCompatActivity() {
                 if (action == "EDIT") {
                     val intent = Intent(this, SetupActivity::class.java)
                     intent.putExtra("PROJECT_ID", project.id)
+                    intent.putExtra("RETURN_TO_HOME", true)
                     startActivity(intent)
                 } else if (action == "DELETE") {
                     AlertDialog.Builder(this)
@@ -155,6 +289,26 @@ class DashboardActivity : AppCompatActivity() {
             layoutManager = LinearLayoutManager(this@DashboardActivity)
             adapter = projectAdapter
         }
+
+        // v85: Drag & Drop (Project Reordering) - Restored
+        val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
+            androidx.recyclerview.widget.ItemTouchHelper.UP or androidx.recyclerview.widget.ItemTouchHelper.DOWN,
+            0
+        ) {
+            override fun onMove(recyclerView: androidx.recyclerview.widget.RecyclerView, viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder, target: androidx.recyclerview.widget.RecyclerView.ViewHolder): Boolean {
+                val fromPos = viewHolder.adapterPosition
+                val toPos = target.adapterPosition
+
+                try {
+                     ProjectRepository.swapProjects(fromPos, toPos)
+                     projectAdapter.notifyItemMoved(fromPos, toPos)
+                     return true
+                } catch (e: Exception) { return false }
+            }
+
+            override fun onSwiped(viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder, direction: Int) {}
+        })
+        itemTouchHelper.attachToRecyclerView(binding.rvProjects)
     }
 
     private fun setupFab() {
@@ -167,6 +321,12 @@ class DashboardActivity : AppCompatActivity() {
     private fun loadProjects() {
         try {
             val projects = ProjectRepository.getAllProjects()
+
+            // v85: Sorting is now persistent in Repository (Action-based)
+            // No need to sort here dynamically.
+
+            // v38: Don't just set data, allow connection check to update it.
+            // But we need initial data.
             projectAdapter.updateData(projects)
 
             if (projects.isEmpty()) {
@@ -179,6 +339,55 @@ class DashboardActivity : AppCompatActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "Error loading projects: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // v38: Dashboard Connectivity Check (Request 4)
+    private var connectionJob: kotlinx.coroutines.Job? = null
+    private val dashboardScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO)
+
+    override fun onPause() {
+        super.onPause()
+        stopConnectionCheck()
+    }
+
+    private fun startConnectionCheck() {
+        stopConnectionCheck()
+        connectionJob = dashboardScope.launch {
+            while (isActive) {
+                checkAllProjectsConnection()
+                kotlinx.coroutines.delay(10000) // Check every 10s
+            }
+        }
+    }
+
+    private fun stopConnectionCheck() {
+        connectionJob?.cancel()
+        connectionJob = null
+    }
+
+    private suspend fun checkAllProjectsConnection() {
+        val currentProjects = ProjectRepository.getAllProjects() // Get fresh list
+        if (currentProjects.isEmpty()) return
+
+        val updatedList = currentProjects.map { project ->
+             val isOnline = checkBrokerConnectivity(project.broker, project.port)
+             project.copy(isConnected = isOnline)
+        }
+
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+             projectAdapter.updateData(updatedList)
+        }
+    }
+
+    private fun checkBrokerConnectivity(broker: String, port: Int): Boolean {
+        return try {
+            java.net.Socket().use { socket ->
+                socket.connect(java.net.InetSocketAddress(broker, port), 2000) // 2s timeout
+                true
+            }
+        } catch (e: Exception) {
+            false
         }
     }
 }
