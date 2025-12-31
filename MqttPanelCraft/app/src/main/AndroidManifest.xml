@@ -59,18 +59,7 @@
             android:name=".RegisterActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".ConnectActivity"
-            android:exported="false" />
 
-        <activity
-            android:name=".MainActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".WebViewActivity"
-            android:exported="false"
-            android:windowSoftInputMode="adjustResize" />
 
     </application>
 

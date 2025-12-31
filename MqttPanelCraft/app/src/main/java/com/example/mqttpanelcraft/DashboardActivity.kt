@@ -248,17 +248,17 @@ class DashboardActivity : AppCompatActivity() {
                 project.lastOpenedAt = System.currentTimeMillis()
                 ProjectRepository.updateProject(project) // Save timestamp
 
-                // On Item Click -> Open Project View or WebView
-                Toast.makeText(this, "Opening ${project.name}...", Toast.LENGTH_SHORT).show()
-                val targetActivity = if (project.type == com.example.mqttpanelcraft.model.ProjectType.WEBVIEW) {
-                    WebViewActivity::class.java
+                if (project.type == com.example.mqttpanelcraft.model.ProjectType.WEBVIEW) {
+                     val intent = Intent(this, WebViewActivity::class.java)
+                     intent.putExtra("URL", project.broker) // Using Broker field as URL
+                     startActivity(intent)
                 } else {
-                    ProjectViewActivity::class.java
+                     // On Item Click -> Open Project View
+                     Toast.makeText(this, "Opening ${project.name}...", Toast.LENGTH_SHORT).show()
+                     val intent = Intent(this, ProjectViewActivity::class.java)
+                     intent.putExtra("PROJECT_ID", project.id)
+                     startActivity(intent)
                 }
-
-                val intent = Intent(this, targetActivity)
-                intent.putExtra("PROJECT_ID", project.id)
-                startActivity(intent)
             },
             onMenuClick = { project, action ->
                 if (action == "EDIT") {

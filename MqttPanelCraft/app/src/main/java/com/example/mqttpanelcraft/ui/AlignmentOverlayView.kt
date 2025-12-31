@@ -12,14 +12,31 @@ class AlignmentOverlayView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    private val paint = Paint().apply {
-        color = Color.BLUE // Customize color as needed
+    private val gridPaint = Paint().apply {
+        color = Color.parseColor("#E0E0E0")
+        strokeWidth = 2f
         style = Paint.Style.STROKE
-        strokeWidth = 3f // dp calculation ideally
+    }
+
+    private var showGrid = false
+    private val density = context.resources.displayMetrics.density
+    private val gridSize = 20 * density
+
+    fun setGridVisible(visible: Boolean) {
+        showGrid = visible
+        invalidate()
+    }
+    
+    fun isGridVisible(): Boolean = showGrid
+
+    // Alignment Guide State
+    private val paint = Paint().apply {
+        color = Color.BLUE 
+        style = Paint.Style.STROKE
+        strokeWidth = 3f * density 
         pathEffect = DashPathEffect(floatArrayOf(10f, 10f), 0f)
     }
     
-    // Store lines to draw: list of (x1, y1, x2, y2)
     private val lines = mutableListOf<FloatArray>()
 
     fun clear() {
@@ -34,6 +51,20 @@ class AlignmentOverlayView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        
+        if (showGrid) {
+             var x = 0f
+             while (x < width) {
+                 canvas.drawLine(x, 0f, x, height.toFloat(), gridPaint)
+                 x += gridSize
+             }
+             var y = 0f
+             while (y < height) {
+                 canvas.drawLine(0f, y, width.toFloat(), y, gridPaint)
+                 y += gridSize
+             }
+        }
+
         for (line in lines) {
             canvas.drawLine(line[0], line[1], line[2], line[3], paint)
         }
