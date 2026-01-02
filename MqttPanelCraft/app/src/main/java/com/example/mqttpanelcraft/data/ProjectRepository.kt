@@ -83,9 +83,13 @@ object ProjectRepository {
     }
 
     private fun saveProjects() {
-        if (file == null) return
+        if (file == null) {
+            android.util.Log.e("ProjectRepo", "saveProjects: File is null!")
+            return
+        }
         try {
             val jsonArray = JSONArray()
+            android.util.Log.d("ProjectRepo", "Saving ${projects.size} projects...")
             for (p in projects) {
                 val obj = JSONObject()
                 obj.put("id", p.id)
@@ -102,6 +106,7 @@ object ProjectRepository {
 
                 // Save Components
                 val compsArray = JSONArray()
+                android.util.Log.d("ProjectRepo", "Saving Project [${p.id}] with ${p.components.size} components.")
                 for (c in p.components) {
                     val cObj = JSONObject()
                     cObj.put("id", c.id)
@@ -124,10 +129,12 @@ object ProjectRepository {
                 jsonArray.put(obj)
             }
             file!!.writeText(jsonArray.toString())
+            android.util.Log.d("ProjectRepo", "Saved successfully to ${file!!.absolutePath}")
         } catch (e: Exception) {
+            android.util.Log.e("ProjectRepo", "Error saving projects", e)
             e.printStackTrace()
         }
-        }
+    }
 
 
     fun getAllProjects(): List<Project> {

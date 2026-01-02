@@ -14,36 +14,23 @@
         android:textStyle="bold"
         android:layout_marginBottom="16dp"/>
 
-    <!-- Orientation Lock Toggle Switch -->
-    <!-- Show Grid Toggle Switch -->
+    <!-- Orientation Control -->
     <com.google.android.material.switchmaterial.SwitchMaterial
-        android:id="@+id/switchGridToggleRunMode"
+        android:id="@+id/switchLockPortrait"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Show Grid"
+        android:text="Lock Portrait"
         android:checked="false"
         android:textSize="14sp"
         android:layout_marginBottom="12dp" />
 
-    <!-- Dark Mode Toggle Switch -->
     <com.google.android.material.switchmaterial.SwitchMaterial
-        android:id="@+id/switchOrientationLock"
+        android:id="@+id/switchLockLandscape"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Lock Orientation"
+        android:text="Lock Landscape"
         android:checked="false"
         android:textSize="14sp"
         android:layout_marginBottom="12dp" />
-
-    <!-- Keep Screen On Toggle Switch -->
-    <com.google.android.material.switchmaterial.SwitchMaterial
-        android:id="@+id/switchKeepScreenOn"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Keep Screen On"
-        android:checked="false"
-
-        android:textSize="14sp"
-        android:layout_marginBottom="16dp" />
 
 </LinearLayout>

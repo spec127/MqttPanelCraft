@@ -80,24 +80,7 @@
         android:visibility="visible" />
         
     <!-- Drop to Delete Zone (Overlay) -->
-    <FrameLayout
-        android:id="@+id/dropDeleteZone"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:layout_marginBottom="8dp"
-        android:background="@drawable/bg_delete_zone_circle"
-        android:visibility="gone"
-        android:elevation="20dp"
-        android:layout_gravity="center_horizontal|bottom">
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="✕"
-            android:textColor="#FFFFFF"
-            android:textSize="32sp"
-            android:textStyle="bold"
-            android:layout_gravity="center"/>
-    </FrameLayout>
+
 
     <!-- DrawerLayout (Below AppBar) -->
     <androidx.drawerlayout.widget.DrawerLayout
@@ -473,5 +456,25 @@
     </LinearLayout>
 
     </androidx.drawerlayout.widget.DrawerLayout>
+
+    <!-- Drop to Delete Zone (Moved to end for Z-Order) -->
+    <FrameLayout
+        android:id="@+id/dropDeleteZone"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_delete_zone_circle"
+        android:visibility="gone"
+        android:elevation="20dp"
+        android:layout_gravity="center_horizontal|bottom">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✕"
+            android:textColor="#FFFFFF"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:layout_gravity="center"/>
+    </FrameLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

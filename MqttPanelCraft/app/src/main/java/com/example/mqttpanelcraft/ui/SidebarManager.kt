@@ -36,7 +36,7 @@ class SidebarManager(
         // openDrawer() // User requested NO auto-open
     }
 
-    private fun openDrawer() {
+    fun openDrawer() {
         if (drawerLayout?.isDrawerOpen(GravityCompat.START) == false) {
             drawerLayout.openDrawer(GravityCompat.START)
         }
