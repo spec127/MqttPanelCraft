@@ -251,6 +251,7 @@ class DashboardActivity : AppCompatActivity() {
                 if (project.type == com.example.mqttpanelcraft.model.ProjectType.WEBVIEW) {
                      val intent = Intent(this, WebViewActivity::class.java)
                      intent.putExtra("URL", project.broker) // Using Broker field as URL
+                     intent.putExtra("PROJECT_ID", project.id) // Pass ID for loading settings
                      startActivity(intent)
                 } else {
                      // On Item Click -> Open Project View

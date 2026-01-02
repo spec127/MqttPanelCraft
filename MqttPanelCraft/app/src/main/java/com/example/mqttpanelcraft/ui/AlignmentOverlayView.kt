@@ -13,7 +13,7 @@ class AlignmentOverlayView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     private val gridPaint = Paint().apply {
-        color = Color.parseColor("#E0E0E0")
+        color = Color.parseColor("#808080") // Darker Grey for better visibility
         strokeWidth = 2f
         style = Paint.Style.STROKE
     }
@@ -54,14 +54,17 @@ class AlignmentOverlayView @JvmOverloads constructor(
         
         if (showGrid) {
              var x = 0f
+             // Draw Grid Points instead of Lines (User Request #3)
+             gridPaint.style = Paint.Style.FILL
+             gridPaint.strokeWidth = 5f // Larger size for dot visibility
+             
              while (x < width) {
-                 canvas.drawLine(x, 0f, x, height.toFloat(), gridPaint)
+                 var y = 0f
+                 while (y < height) {
+                     canvas.drawPoint(x, y, gridPaint)
+                     y += gridSize
+                 }
                  x += gridSize
-             }
-             var y = 0f
-             while (y < height) {
-                 canvas.drawLine(0f, y, width.toFloat(), y, gridPaint)
-                 y += gridSize
              }
         }
 

@@ -9,15 +9,7 @@
 
 
 
-    <!-- Grid Toggle Switch -->
-    <com.google.android.material.switchmaterial.SwitchMaterial
-        android:id="@+id/switchGridToggle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Show Grid"
-        android:checked="false"
-        android:textSize="14sp"
-        android:layout_marginBottom="12dp" />
+    <!-- Grid Toggle REMOVED as per user request -->
 
     <!-- Search Bar -->
     <com.google.android.material.card.MaterialCardView
@@ -27,7 +19,7 @@
         app:cardElevation="2dp"
         app:strokeWidth="1dp"
         app:strokeColor="@color/sidebar_card_stroke"
-        android:layout_marginBottom="16dp">
+        android:layout_marginBottom="12dp">
 
         <EditText
             android:id="@+id/etSearchComponents"
@@ -35,11 +27,10 @@
             android:layout_height="wrap_content"
             android:background="@null"
             android:hint="Search..."
-            android:padding="12dp"
+            android:padding="8dp"
             android:textSize="14sp"
             android:drawableEnd="@android:drawable/ic_menu_close_clear_cancel"
             android:drawableTint="@color/sidebar_icon_tint"/>
-            <!-- Using system icon for close as placeholder -->
     </com.google.android.material.card.MaterialCardView>
 
     <ScrollView
@@ -54,30 +45,31 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- Category: Display (1, 2) -->
+            <!-- Category: Display -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Display"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@color/sidebar_section_header"
-                android:layout_marginBottom="12dp"/>
+                android:layout_marginBottom="8dp"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="16dp">
 
-                <!-- Text Card (Value) -->
+                <!-- Text Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardText"
-                    android:layout_width="116dp"
-                    android:layout_height="100dp"
-                    android:layout_marginEnd="8dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="6dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="80dp"
+                    android:layout_marginEnd="4dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="4dp"
                     app:strokeWidth="1dp"
                     app:strokeColor="@color/sidebar_component_stroke"
                     android:clickable="true"
@@ -91,14 +83,14 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Abc"
-                            android:textSize="24sp"
+                            android:textSize="20sp"
                             android:textColor="@color/sidebar_text_primary"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Text"
-                            android:textSize="12sp"
-                            android:layout_marginTop="4dp"
+                            android:textSize="10sp"
+                            android:layout_marginTop="2dp"
                             android:textColor="@color/sidebar_text_secondary"/>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -106,11 +98,12 @@
                 <!-- Image Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardImage"
-                    android:layout_width="116dp"
-                    android:layout_height="100dp"
-                    android:layout_marginStart="8dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="6dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="80dp"
+                    android:layout_marginStart="4dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="4dp"
                     app:strokeWidth="1dp"
                     app:strokeColor="@color/sidebar_component_stroke"
                     android:clickable="true"
@@ -121,46 +114,47 @@
                         android:gravity="center"
                         android:orientation="vertical">
                         <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:src="@android:drawable/ic_menu_gallery"
                             app:tint="@color/sidebar_icon_tint"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Image"
-                            android:textSize="12sp"
-                            android:layout_marginTop="8dp"
+                            android:textSize="10sp"
+                            android:layout_marginTop="2dp"
                             android:textColor="@color/sidebar_text_secondary"/>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
 
 
-            <!-- Category: Control (3, 4) -->
+            <!-- Category: Control -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Control"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@color/sidebar_section_header"
-                android:layout_marginBottom="12dp"/>
+                android:layout_marginBottom="8dp"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="16dp">
 
                 <!-- Button Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardButton"
-                    android:layout_width="116dp"
-                    android:layout_height="100dp"
-                    android:layout_marginEnd="8dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="6dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="80dp"
+                    android:layout_marginEnd="4dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="4dp"
                     app:strokeWidth="1dp"
                     app:strokeColor="@color/sidebar_component_stroke"
                     android:clickable="true"
@@ -171,16 +165,16 @@
                         android:gravity="center"
                         android:orientation="vertical">
                         <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:src="@android:drawable/ic_media_play"
                             app:tint="@color/sidebar_icon_tint"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Button"
-                            android:textSize="12sp"
-                            android:layout_marginTop="8dp"
+                            android:textSize="10sp"
+                            android:layout_marginTop="2dp"
                             android:textColor="@color/sidebar_text_secondary"/>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -188,11 +182,12 @@
                 <!-- Slider Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardSlider"
-                    android:layout_width="116dp"
-                    android:layout_height="100dp"
-                    android:layout_marginStart="8dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="6dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="80dp"
+                    android:layout_marginStart="4dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="4dp"
                     app:strokeWidth="1dp"
                     app:strokeColor="@color/sidebar_component_stroke"
                     android:clickable="true"
@@ -203,16 +198,16 @@
                         android:gravity="center"
                         android:orientation="vertical">
                         <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:src="@android:drawable/ic_menu_preferences"
                             app:tint="@color/sidebar_icon_tint"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Slider"
-                            android:textSize="12sp"
-                            android:layout_marginTop="8dp"
+                            android:textSize="10sp"
+                            android:layout_marginTop="2dp"
                             android:textColor="@color/sidebar_text_secondary"/>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -222,16 +217,17 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="24dp">
+                android:layout_marginBottom="16dp">
                 
                 <!-- Camera Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardCamera"
-                    android:layout_width="116dp"
-                    android:layout_height="100dp"
-                    android:layout_marginEnd="8dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="6dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="80dp"
+                    android:layout_marginEnd="4dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="4dp"
                     app:strokeWidth="1dp"
                     app:strokeColor="@color/sidebar_component_stroke"
                     android:clickable="true"
@@ -242,46 +238,54 @@
                         android:gravity="center"
                         android:orientation="vertical">
                         <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:src="@android:drawable/ic_menu_camera"
                             app:tint="@color/sidebar_icon_tint"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Camera"
-                            android:textSize="12sp"
-                            android:layout_marginTop="8dp"
+                            android:textSize="10sp"
+                            android:layout_marginTop="2dp"
                             android:textColor="@color/sidebar_text_secondary"/>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
+                
+                 <!-- Spacer for grid alignment -->
+                 <View
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="80dp"
+                    android:layout_marginStart="4dp"/>
             </LinearLayout>
 
 
-            <!-- Category: Sensor (5, 6) -->
+            <!-- Category: Sensor -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Sensor"
-                android:textSize="18sp"
+                android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@color/sidebar_section_header"
-                android:layout_marginBottom="12dp"/>
+                android:layout_marginBottom="8dp"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="12dp">
+                android:layout_marginBottom="8dp">
 
                 <!-- LED Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardLed"
-                    android:layout_width="116dp"
-                    android:layout_height="100dp"
-                    android:layout_marginEnd="8dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="6dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="80dp"
+                    android:layout_marginEnd="4dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="4dp"
                     app:strokeWidth="1dp"
                     app:strokeColor="@color/sidebar_component_stroke"
                     android:clickable="true"
@@ -292,16 +296,16 @@
                         android:gravity="center"
                         android:orientation="vertical">
                         <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:src="@android:drawable/btn_star_big_on"
                             app:tint="@color/sidebar_icon_tint"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="LED"
-                            android:textSize="12sp"
-                            android:layout_marginTop="8dp"
+                            android:textSize="10sp"
+                            android:layout_marginTop="2dp"
                             android:textColor="@color/sidebar_text_secondary"/>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
@@ -309,11 +313,12 @@
                 <!-- Thermometer Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardThermometer"
-                    android:layout_width="116dp"
-                    android:layout_height="100dp"
-                    android:layout_marginStart="8dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="6dp"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="80dp"
+                    android:layout_marginStart="4dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardElevation="4dp"
                     app:strokeWidth="1dp"
                     app:strokeColor="@color/sidebar_component_stroke"
                     android:clickable="true"
@@ -324,16 +329,16 @@
                         android:gravity="center"
                         android:orientation="vertical">
                         <ImageView
-                            android:layout_width="32dp"
-                            android:layout_height="32dp"
+                            android:layout_width="28dp"
+                            android:layout_height="28dp"
                             android:src="@android:drawable/ic_lock_idle_low_battery"
                             app:tint="@color/sidebar_icon_tint"/>
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Level Indicator"
-                            android:textSize="12sp"
-                            android:layout_marginTop="8dp"
+                            android:textSize="10sp"
+                            android:layout_marginTop="2dp"
                             android:textColor="@color/sidebar_text_secondary"/>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>

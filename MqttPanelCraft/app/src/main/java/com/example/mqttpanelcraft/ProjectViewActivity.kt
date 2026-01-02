@@ -19,6 +19,7 @@ import com.example.mqttpanelcraft.model.Project
 import com.example.mqttpanelcraft.model.ProjectType
 import com.example.mqttpanelcraft.ui.AlignmentOverlayView
 import com.example.mqttpanelcraft.ui.CanvasManager
+import com.example.mqttpanelcraft.ui.ComponentFactory
 import com.example.mqttpanelcraft.ui.IdleAdController
 import com.example.mqttpanelcraft.ui.PropertiesSheetManager
 import com.example.mqttpanelcraft.ui.SidebarManager
@@ -31,12 +32,7 @@ class ProjectViewActivity : AppCompatActivity() {
     // View Model
     private lateinit var viewModel: ProjectViewModel
 
-    // Managers
-    private lateinit var canvasManager: CanvasManager
-    private lateinit var sidebarManager: SidebarManager
-    private lateinit var propertiesManager: PropertiesSheetManager
-    private lateinit var mqttHandler: MqttHandler
-    private lateinit var idleAdController: IdleAdController
+
 
     // UI Elements
     private lateinit var editorCanvas: FrameLayout
@@ -120,31 +116,45 @@ class ProjectViewActivity : AppCompatActivity() {
         }
     }
 
+    // Managers
+    private lateinit var logConsoleManager: com.example.mqttpanelcraft.ui.LogConsoleManager // New Manager
+    private lateinit var canvasManager: CanvasManager
+    private lateinit var sidebarManager: SidebarManager
+    private lateinit var propertiesManager: PropertiesSheetManager
+    private lateinit var mqttHandler: MqttHandler
+    private lateinit var idleAdController: IdleAdController
+
+    // ... (rest of vars)
+
     private fun initializeManagers(bottomSheet: View, containerProperties: View?) {
         // MqttHandler
         mqttHandler = MqttHandler(this,
             onMessageReceived = { topic, message ->
                  runOnUiThread {
-                     logAdapter.addLog("Msg: $topic -> $message")
+                     logConsoleManager.addLog("Msg: $topic -> $message")
                      updateComponentFromMqtt(topic, message)
                  }
             },
             onConnectionStatusChanged = { isConnected ->
                  runOnUiThread {
-                     logAdapter.addLog(if(isConnected) "Connected to Broker" else "Disconnected")
+                     logConsoleManager.addLog(if(isConnected) "Connected to Broker" else "Disconnected")
                      updateStatusIndicator(isConnected)
                  }
             }
         )
-
-        // CanvasManager
+        
+        // Log Console Manager
+        logConsoleManager = com.example.mqttpanelcraft.ui.LogConsoleManager(
+            window.decorView, // Pass root to find IDs
+            mqttHandler
+        )
+        
         // CanvasManager
         canvasManager = CanvasManager(
             canvasCanvas = editorCanvas,
             guideOverlay = guideOverlay,
             dropDeleteZone = dropDeleteZone,
             onComponentDropped = { view -> 
-                 // No-op or specific actions
                  componentViewCache[view.id] = view
             },
             onComponentMoved = { view -> 
@@ -154,31 +164,18 @@ class ProjectViewActivity : AppCompatActivity() {
                  viewModel.saveProject()
             },
             onCreateNewComponent = { tag, x, y ->
-                // Create View
-                val view = createComponentView(tag)
+                // Create View using Factory
+                val view = com.example.mqttpanelcraft.ui.ComponentFactory.createComponentView(this, tag, isEditMode)
                 view.id = View.generateViewId()
                 
-                // Calculate size to center it on finger
-                val w = 100 * resources.displayMetrics.density.toInt() // Default estimate?
-                val h = 100 * resources.displayMetrics.density.toInt()
-                // Or better, let layout happen, but we need to set params.
-                // createComponentView uses 8dp padding and internal content.
-                // Let's rely on standard size or measure it.
-                // For simplicity, we set a default size then snap.
-                
-                val params = FrameLayout.LayoutParams(
-                     (100*resources.displayMetrics.density).toInt(), 
-                     (100*resources.displayMetrics.density).toInt()
-                )
-                if (tag == "SLIDER") params.width = (200*resources.displayMetrics.density).toInt()
-                if (tag == "TEXT") params.width = (150*resources.displayMetrics.density).toInt()
-                
+                val (defW, defH) = com.example.mqttpanelcraft.ui.ComponentFactory.getDefaultSize(this, tag)
+                val params = FrameLayout.LayoutParams(defW, defH)
                 view.layoutParams = params
                 
                  // Snap Calculation using Manager's exposed util
                 val snapped = canvasManager.getSnappedPosition(
-                    x - params.width / 2f, 
-                    y - params.height / 2f, 
+                    x, 
+                    y, 
                     params.width, 
                     params.height, 
                     null
@@ -200,7 +197,8 @@ class ProjectViewActivity : AppCompatActivity() {
                 
                 componentViewCache[view.id] = view
                 
-                // Create Data Object
+                // Retrieve initial config from View/Factory if needed?
+                // For now, default ComponentData
                 val componentData = ComponentData(
                     id = view.id,
                     type = tag,
@@ -215,6 +213,11 @@ class ProjectViewActivity : AppCompatActivity() {
                 
                 viewModel.addComponent(componentData)
                 viewModel.saveProject()
+                
+                // Add logic for button/slider/cam to attach listeners that might be missing from Factory
+                // The factory sets basic props, but we need Mqtt logic.
+                // We should attach usage listeners here or in a helper
+                attachComponentLogic(view, tag)
             }
         )
         canvasManager.setupDragListener { isEditMode }
@@ -230,9 +233,9 @@ class ProjectViewActivity : AppCompatActivity() {
 
         // PropertiesManager
         propertiesManager = PropertiesSheetManager(
-             rootView = window.decorView,
-             propertyContainer = bottomSheet,
-             onPropertyUpdated = { id, name, w, h, color, topicConfig -> 
+            rootView = window.decorView,
+            propertyContainer = bottomSheet,
+            onPropertyUpdated = { id, name, w, h, color, topicConfig -> 
                  val view = editorCanvas.findViewById<View>(id)
                  if (view != null) {
                      val params = view.layoutParams
@@ -249,13 +252,151 @@ class ProjectViewActivity : AppCompatActivity() {
                      
                      viewModel.saveProject()
                  }
-             }
+            }
         )
         
-        // IdleAdController
-        idleAdController = IdleAdController(this) {
-            // setupWindowInsets() 
+        idleAdController = IdleAdController(this) {}
+    }
+
+    private fun attachComponentLogic(view: View, tag: String) {
+         // Lookup component data correctly for dynamic topic
+         val component = viewModel.components.value?.find { it.id == view.id }
+         val topic = component?.topicConfig ?: "${viewModel.project.value?.name}/$tag/${view.id}"
+
+         if (view is FrameLayout && view.childCount > 0) {
+             val content = view.getChildAt(0)
+             if (tag == "BUTTON" && content is Button) {
+                 content.setOnClickListener {
+                     if (!isEditMode) {
+                         // Use dynamic topic
+                         mqttHandler.publish(topic, "1")
+                     }
+                 }
+             }
+             if (tag == "SLIDER" && content is Slider) {
+                 content.addOnChangeListener { _, value, fromUser ->
+                     if (fromUser && !isEditMode) {
+                         mqttHandler.publish(topic, value.toInt().toString())
+                     }
+                 }
+             }
+             if (tag == "CAMERA" && content is Button) {
+                 content.setOnClickListener { 
+                    if(!isEditMode) openGallery(view.id) 
+                 }
+             }
+             if (tag == "IMAGE") {
+                 view.findViewWithTag<View>("CLEAR_BTN")?.setOnClickListener {
+                      (content as? ImageView)?.setImageResource(android.R.drawable.ic_menu_gallery)
+                 }
+             }
+         }
+    }
+    
+    private fun restoreComponents(components: List<ComponentData>) {
+        editorCanvas.removeAllViews()
+        componentViewCache.clear()
+        
+        components.forEach { comp ->
+             val view = com.example.mqttpanelcraft.ui.ComponentFactory.createComponentView(this, comp.type, isEditMode)
+             view.id = comp.id
+             componentViewCache[comp.id] = view
+             
+             val params = FrameLayout.LayoutParams(comp.width, comp.height)
+             view.layoutParams = params
+             view.x = comp.x
+             view.y = comp.y
+             
+             editorCanvas.addView(view)
+             makeDraggable(view)
+
+             val label = TextView(this).apply {
+                 text = comp.label
+                 tag = "LABEL_FOR_${view.id}"
+                 x = view.x
+                 y = view.y + view.height + 4
+             }
+             editorCanvas.addView(label)
+             
+             attachComponentLogic(view, comp.type)
         }
+    }
+
+    // Removed createComponentView (moved to Factory) and setupLogs (moved to Manager)
+    
+    private fun updateModeUI() {
+        if (isEditMode) {
+             fabMode.setImageResource(android.R.drawable.ic_media_play)
+             guideOverlay.visibility = View.VISIBLE
+             
+             // Edit Mode: 
+             // 1. Sidebar shows Components (User wants to add components)
+             // 2. Hide Logs, Show Properties Container
+             sidebarManager.showComponentsPanel()
+             
+             findViewById<View>(R.id.containerLogs)?.visibility = View.GONE
+             findViewById<View>(R.id.containerProperties)?.visibility = View.VISIBLE
+             
+             idleAdController.stop()
+        } else {
+             fabMode.setImageResource(android.R.drawable.ic_menu_edit)
+             guideOverlay.visibility = View.GONE
+             
+             // Run Mode: 
+             // 1. Sidebar shows Settings (User Request #1: "左邊的欄位應該是關於暗色設定")
+             // 2. Hide Properties, Show Logs
+             sidebarManager.showRunModePanel() 
+             
+             findViewById<View>(R.id.containerLogs)?.visibility = View.VISIBLE
+             findViewById<View>(R.id.containerProperties)?.visibility = View.GONE
+             
+             propertiesManager.hide() // Ensure properties Sheet is collapsed
+             
+             idleAdController.start()
+             
+             viewModel.project.value?.let { p ->
+                 mqttHandler.subscribe("${p.name.lowercase(Locale.ROOT)}/${p.id}/#")
+                 logConsoleManager.addLog("Subscribed to project topic")
+             }
+        }
+    }
+    
+    private fun setupUI() {
+        // ... (standard setup)
+        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setHomeAsUpIndicator(android.R.drawable.ic_menu_sort_by_size)
+        toolbar.setNavigationOnClickListener { sidebarManager.showComponentsPanel() }
+        
+        findViewById<View>(R.id.btnSettings).setOnClickListener {
+            val projectId = viewModel.project.value?.id
+            if (projectId != null) {
+                val intent = Intent(this, SetupActivity::class.java)
+                intent.putExtra("PROJECT_ID", projectId)
+                startActivity(intent)
+            }
+        }
+        
+        // switchGrid removed. Using btnGrid instead.
+        findViewById<View>(R.id.btnGrid).setOnClickListener {
+             val isVisible = !guideOverlay.isGridVisible()
+             guideOverlay.setGridVisible(isVisible)
+             // Optional: Update icon tint or state if needed?
+             // Since it's just an ImageView, maybe just toast or no visual feedback on button itself for now.
+             // Or toggle alpha?
+             it.alpha = if(isVisible) 1.0f else 0.5f 
+        }
+
+        fabMode.setOnClickListener {
+            val project = viewModel.project.value
+            if (project == null) return@setOnClickListener
+            if (project.type == ProjectType.FACTORY && !isEditMode) {
+                 showPasswordDialog { toggleMode() }
+            } else { toggleMode() }
+        }
+
+        setupSidebarInteraction()
     }
 
     private fun setupObservers() {
@@ -270,54 +411,10 @@ class ProjectViewActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupUI() {
-        val toolbar = findViewById<androidx.appcompat.widget.Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-        
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setHomeAsUpIndicator(android.R.drawable.ic_menu_sort_by_size)
-        toolbar.setNavigationOnClickListener { 
-            sidebarManager.showComponentsPanel() 
-        }
 
-        findViewById<View>(R.id.btnSettings).setOnClickListener {
-            val projectId = viewModel.project.value?.id
-            if (projectId != null) {
-                val intent = Intent(this, SetupActivity::class.java)
-                intent.putExtra("PROJECT_ID", projectId)
-                startActivity(intent)
-            }
-        }
-        
-        // Grid Toggle (Sidebar Switch)
-        // Note: View might be in sidebar layout. 
-        val switchGrid = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchGridToggle)
-        switchGrid?.setOnCheckedChangeListener { _, isChecked ->
-             guideOverlay.setGridVisible(isChecked)
-        }
-        
-        // Remove old button logic or hide it if present in XML
-        findViewById<View>(R.id.btnGrid)?.visibility = View.GONE
-
-        fabMode.setOnClickListener {
-            val project = viewModel.project.value
-            if (project == null) {
-                Toast.makeText(this, "Project loading...", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-            if (project.type == ProjectType.FACTORY && !isEditMode) {
-                 showPasswordDialog { toggleMode() }
-            } else {
-                toggleMode()
-            }
-        }
-        
-        setupLogs()
-
-        setupSidebarInteraction()
-    }
     
     private fun setupSidebarInteraction() {
+        // ... (Existing component setup)
         val categories = listOf(
             R.id.cardText to "TEXT",
             R.id.cardImage to "IMAGE",
@@ -334,8 +431,28 @@ class ProjectViewActivity : AppCompatActivity() {
                  
                  val item = ClipData.Item(tag)
                  val dragData = ClipData(tag, arrayOf(android.content.ClipDescription.MIMETYPE_TEXT_PLAIN), item)
-                 val shadow = View.DragShadowBuilder(view)
-                 view.startDragAndDrop(dragData, shadow, view, 0)
+                 
+                 // Generate "Real" Preview View for Shadow
+                 val previewView = ComponentFactory.createComponentView(view.context, tag, true)
+                 val (w, h) = ComponentFactory.getDefaultSize(view.context, tag)
+                 
+                 // Measure and Layout manualy for Shadow
+                 val widthSpec = View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY)
+                 val heightSpec = View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY)
+                 previewView.measure(widthSpec, heightSpec)
+                 previewView.layout(0, 0, w, h)
+                 
+                 val shadow = object : View.DragShadowBuilder(previewView) {
+                     override fun onProvideShadowMetrics(outShadowSize: android.graphics.Point, outShadowTouchPoint: android.graphics.Point) {
+                         outShadowSize.set(previewView.measuredWidth, previewView.measuredHeight)
+                         outShadowTouchPoint.set(previewView.measuredWidth / 2, previewView.measuredHeight / 2)
+                     }
+                     override fun onDrawShadow(canvas: android.graphics.Canvas) {
+                         previewView.draw(canvas)
+                     }
+                 }
+
+                 view.startDragAndDrop(dragData, shadow, null, 0) // LocalState null because it's a new item
                  
                  sidebarManager.closeDrawer()
                  return@OnTouchListener true
@@ -349,10 +466,44 @@ class ProjectViewActivity : AppCompatActivity() {
                 setOnTouchListener(touchListener)
             }
         }
+
+        // --- Run Mode Settings Setup ---
+        setupRunModeSidebar()
     }
 
-    // Logs
-    private val logAdapter = com.example.mqttpanelcraft.adapter.LogAdapter()
+    private fun setupRunModeSidebar() {
+        val prefs = getSharedPreferences("ProjectViewPrefs", MODE_PRIVATE)
+
+        // Orientation Lock
+        val switchOrientation = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchOrientationLock)
+        if (switchOrientation != null) {
+            val isLocked = prefs.getBoolean("orientation_locked", false)
+            switchOrientation.isChecked = isLocked
+            requestedOrientation = if (isLocked) android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LOCKED 
+                                   else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR
+
+            switchOrientation.setOnCheckedChangeListener { _, isChecked ->
+                requestedOrientation = if (isChecked) android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LOCKED 
+                                       else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR
+                prefs.edit().putBoolean("orientation_locked", isChecked).apply()
+            }
+        }
+
+        // Keep Screen On
+        val switchScreen = findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchKeepScreenOn)
+        if (switchScreen != null) {
+            val isKeepOn = prefs.getBoolean("keep_screen_on", false)
+            switchScreen.isChecked = isKeepOn
+            if (isKeepOn) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+            switchScreen.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                prefs.edit().putBoolean("keep_screen_on", isChecked).apply()
+            }
+        }
+    }
 
     private fun toggleMode() {
         try {
@@ -362,62 +513,6 @@ class ProjectViewActivity : AppCompatActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
             Toast.makeText(this, "Error toggling mode: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    }
-    
-    private fun updateModeUI() {
-        if (isEditMode) {
-            fabMode.setImageResource(android.R.drawable.ic_media_play)
-            guideOverlay.visibility = if (guideOverlay.isGridVisible()) View.VISIBLE else View.VISIBLE // Logic complexity here
-            // If grid is ON, overlay is VISIBLE. if grid is OFF, overlay might be GONE?
-            // Wait, guideOverlay handles BOTH grid and alignment lines.
-            // If Edit Mode, Alignment lines should be active. Grid is optional.
-            // So overlay should ALWAYS be visible in Edit Mode to show alignment lines if active, or just ready for them.
-            // Actually, `checkAlignment` draws lines.
-            guideOverlay.visibility = View.VISIBLE
-            
-            sidebarManager.showComponentsPanel()
-            idleAdController.stop()
-        } else {
-            fabMode.setImageResource(android.R.drawable.ic_menu_edit)
-            guideOverlay.visibility = View.GONE
-            sidebarManager.showRunModePanel()
-            idleAdController.start()
-            
-            viewModel.project.value?.let { p ->
-                mqttHandler.subscribe("${p.name.lowercase(Locale.ROOT)}/${p.id}/#")
-                logAdapter.addLog("Subscribed to project topic")
-            }
-        }
-    }
-    
-    private fun setupLogs() {
-        val rvLogs = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rvConsoleLogs)
-        rvLogs.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
-        rvLogs.adapter = logAdapter
-        
-        findViewById<Button>(R.id.btnConsoleSubscribe).setOnClickListener {
-             val topic = findViewById<EditText>(R.id.etConsoleTopic).text.toString()
-             if (topic.isNotEmpty()) {
-                 mqttHandler.subscribe(topic)
-                 logAdapter.addLog("Subscribed: $topic")
-             }
-        }
-        
-        findViewById<Button>(R.id.btnConsoleSend).setOnClickListener {
-             val payload = findViewById<EditText>(R.id.etConsolePayload).text.toString()
-             // Topic? User usually needs a topic.
-             // The UI shows Topic and Payload inputs in separate rows? 
-             // Activity XML shows etConsoleTopic and btnConsoleSubscribe in one row.
-             // And etConsolePayload and btnConsoleSend in another. But where is the topic for Send?
-             // Maybe it uses `etConsoleTopic`?
-             val topic = findViewById<EditText>(R.id.etConsoleTopic).text.toString()
-             if (topic.isNotEmpty()) {
-                 mqttHandler.publish(topic, payload)
-                 logAdapter.addLog("Pub: $topic -> $payload")
-             } else {
-                 Toast.makeText(this, "Enter Topic", Toast.LENGTH_SHORT).show()
-             }
         }
     }
 
@@ -446,99 +541,17 @@ class ProjectViewActivity : AppCompatActivity() {
         }
     }
 
-    private fun restoreComponents(components: List<ComponentData>) {
-        editorCanvas.removeAllViews()
-        componentViewCache.clear()
-        
-        components.forEach { comp ->
-             val view = createComponentView(comp.type)
-             view.id = comp.id
-             componentViewCache[comp.id] = view
-             
-             val params = FrameLayout.LayoutParams(comp.width, comp.height)
-             view.layoutParams = params
-             view.x = comp.x
-             view.y = comp.y
-             
-             editorCanvas.addView(view)
-             makeDraggable(view)
 
-             val label = TextView(this).apply {
-                 text = comp.label
-                 tag = "LABEL_FOR_${view.id}"
-                 x = view.x
-                 y = view.y + view.height + 4
-             }
-             editorCanvas.addView(label)
-        }
-    }
-
-    private fun createComponentView(tag: String): View {
-        val container = FrameLayout(this)
-        container.setBackgroundResource(R.drawable.component_border)
-        container.setPadding(8,8,8,8)
-        container.tag = tag
-        
-        val content: View = when(tag) {
-            "BUTTON" -> Button(this).apply { 
-                text = "BTN" 
-                setOnClickListener {
-                     if (!isEditMode) {
-                         val topic = "${viewModel.project.value?.name}/button/${(parent as View).id}"
-                         mqttHandler.publish(topic, "1")
-                     }
-                }
-            }
-            "TEXT" -> TextView(this).apply { text = "Text"; gravity = android.view.Gravity.CENTER }
-            "SLIDER" -> Slider(this).apply { 
-                valueFrom=0f; valueTo=100f 
-                addOnChangeListener { _, value, fromUser ->
-                    if (fromUser && !isEditMode) {
-                        val topic = "${viewModel.project.value?.name}/slider/${(parent as View).id}"
-                        mqttHandler.publish(topic, value.toInt().toString())
-                    }
-                }
-            }
-            "LED" -> View(this).apply { 
-                background = android.graphics.drawable.GradientDrawable().apply {
-                    shape = android.graphics.drawable.GradientDrawable.OVAL
-                    setColor(Color.RED)
-                }
-            }
-            "IMAGE" -> ImageView(this).apply { 
-                setImageResource(android.R.drawable.ic_menu_gallery)
-                scaleType = ImageView.ScaleType.FIT_CENTER
-            }
-            "CAMERA" -> Button(this).apply { 
-                text = "CAM"
-                setOnClickListener { 
-                    if(!isEditMode) openGallery((parent as View).id) 
-                }
-            }
-            else -> TextView(this).apply { text = tag }
-        }
-        
-        container.addView(content, FrameLayout.LayoutParams(-1,-1))
-        
-        if (tag == "IMAGE") {
-            val closeBtn = ImageButton(this).apply {
-                setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
-                background = null
-                layoutParams = FrameLayout.LayoutParams(64,64).apply { gravity = android.view.Gravity.TOP or android.view.Gravity.END }
-                this.tag = "CLEAR_BTN"
-                setOnClickListener { (content as? ImageView)?.setImageResource(android.R.drawable.ic_menu_gallery) }
-            }
-            container.addView(closeBtn)
-        }
-
-        return container
-    }
     
     private fun makeDraggable(view: View) {
         view.setOnClickListener {
             if (!isEditMode) return@setOnClickListener
-            Toast.makeText(this, "Editing Component...", Toast.LENGTH_SHORT).show()
-            propertiesManager.showProperties(view, "Component", "")
+            // Toast.makeText(this, "Editing Component...", Toast.LENGTH_SHORT).show()
+            
+            val comp = viewModel.components.value?.find { it.id == view.id }
+            if (comp != null) {
+                propertiesManager.showProperties(view, comp.label, comp.topicConfig)
+            }
         }
         
         view.setOnLongClickListener { v ->
@@ -561,7 +574,10 @@ class ProjectViewActivity : AppCompatActivity() {
         // Optimization: Parse topic to get ID is unsafe if format varies. 
         // Safer: Iterate map (faster than View traversal)
         componentViewCache.forEach { (id, view) ->
-             if (topic.endsWith("/$id") || topic.contains("/$id/")) {
+             val comp = viewModel.components.value?.find { it.id == id }
+             // Check if topic matches component's config
+             // Handle wildcards if needed, but for now simple string match or suffix match
+             if (comp != null && (topic == comp.topicConfig || topic.endsWith("/$id"))) {
                 if (view is FrameLayout) {
                     val inner = view.getChildAt(0)
                     if (inner is TextView && view.tag == "TEXT") inner.text = message

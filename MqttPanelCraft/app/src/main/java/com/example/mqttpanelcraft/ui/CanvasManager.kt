@@ -22,6 +22,7 @@ class CanvasManager(
 
     private val cachedCanvasLoc = IntArray(2)
     private var lastCheckTime = 0L
+    private var ghostView: View? = null
 
     fun setupDragListener(isEditMode: () -> Boolean) {
         canvasCanvas.setOnDragListener { _, event ->
@@ -40,24 +41,54 @@ class CanvasManager(
                         lastCheckTime = now
                         val localState = event.localState as? View
                         
-                        // For existing components (parent == canvas), usage is straightforward.
-                        // For NEW components (parent != canvas), we need to estimate size/id?
-                        // Actually, alignment guides for new components are tricky if we don't have a view yet.
-                        // We will skip alignment check for new components for now, or assume default size.
-                        
                         if (localState != null && localState.parent == canvasCanvas) {
+                            // Existing Component
                             checkAlignment(event.x, event.y, localState)
-                            
                             val screenX = event.x + cachedCanvasLoc[0]
                             val screenY = event.y + cachedCanvasLoc[1]
-                            
                             checkDeleteZoneHover(screenX, screenY, localState)
+                        } else {
+                            // New Component (ClipData)
+                            val item = event.clipData?.getItemAt(0)
+                            val tag = item?.text?.toString()
+                            if (tag != null) {
+                                val (w, h) = ComponentFactory.getDefaultSize(canvasCanvas.context, tag)
+                                
+                                // Ghost View Logic
+                                if (ghostView == null) {
+                                    ghostView = ComponentFactory.createComponentView(canvasCanvas.context, tag, true).apply {
+                                        alpha = 0.5f
+                                        layoutParams = FrameLayout.LayoutParams(w, h)
+                                    }
+                                    canvasCanvas.addView(ghostView)
+                                }
+                                
+                                // Calculate Snap (Pass ghostView as viewToExclude to avoid snapping to itself)
+                                val snapPos = calculateSnap(event.x, event.y, w, h, ghostView)
+                                val finalX = snapPos?.x?.toFloat() ?: (event.x - w/2f)
+                                val finalY = snapPos?.y?.toFloat() ?: (event.y - h/2f)
+
+                                checkAlignmentBounds(event.x, event.y, w, h, ghostView)
+                                ghostView?.x = finalX
+                                ghostView?.y = finalY
+                                
+                                val screenX = event.x + cachedCanvasLoc[0]
+                                val screenY = event.y + cachedCanvasLoc[1]
+                                // We don't have a view to set alpha on, but we can animate the zone
+                                checkDeleteZoneHover(screenX, screenY, ghostView)
+                            }
                         }
                     }
                 }
                 DragEvent.ACTION_DRAG_ENDED -> {
                     guideOverlay.clear()
                     dropDeleteZone.visibility = View.GONE
+                    
+                    if (ghostView != null) {
+                        canvasCanvas.removeView(ghostView)
+                        ghostView = null
+                    }
+                    
                     val localState = event.localState as? View
                     
                     if (!event.result) {
@@ -142,7 +173,7 @@ class CanvasManager(
     }
 
     private fun calculateSnap(centerRawX: Float, centerRawY: Float, w: Int, h: Int, currentView: View?): Point? {
-        val threshold = 16f * density
+        val threshold = 32f * density
 
         // Convert center drag coords to Top-Left for snapping logic
         val rawLeft = centerRawX - w / 2f
@@ -198,13 +229,13 @@ class CanvasManager(
     }
 
     private fun checkAlignment(centerX: Float, centerY: Float, currentView: View) {
+         checkAlignmentBounds(centerX, centerY, currentView.width, currentView.height, currentView)
+    }
+    
+    private fun checkAlignmentBounds(centerX: Float, centerY: Float, w: Int, h: Int, currentView: View?) {
         guideOverlay.clear()
-        val threshold = 2f * density
+        val threshold = 32f * density
 
-        val w = currentView.width
-        val h = currentView.height
-
-        // Fix: Use DYNAMIC coordinates passed from Event, not static view properties
         val myLeft = centerX - w / 2f
         val myRight = centerX + w / 2f
         val myTop = centerY - h / 2f
@@ -241,17 +272,17 @@ class CanvasManager(
         }
     }
 
-    private fun checkDeleteZoneHover(screenX: Float, screenY: Float, view: View) {
+    private fun checkDeleteZoneHover(screenX: Float, screenY: Float, view: View?) {
         val locations = IntArray(2)
         dropDeleteZone.getLocationOnScreen(locations)
         val zoneRect = Rect(locations[0], locations[1], locations[0]+dropDeleteZone.width, locations[1]+dropDeleteZone.height)
         
         if (zoneRect.contains(screenX.toInt(), screenY.toInt())) {
              dropDeleteZone.animate().scaleX(1.3f).scaleY(1.3f).setDuration(100).start()
-             view.alpha = 0.3f
+             view?.alpha = 0.3f
         } else {
              dropDeleteZone.animate().scaleX(1.0f).scaleY(1.0f).setDuration(100).start()
-             view.alpha = 0.8f
+             view?.alpha = 0.8f
         }
     }
 

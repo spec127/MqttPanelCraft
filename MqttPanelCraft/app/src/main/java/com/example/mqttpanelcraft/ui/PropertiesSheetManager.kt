@@ -62,8 +62,12 @@ class PropertiesSheetManager(
     fun showProperties(view: View, label: String, topicConfig: String) {
         selectedViewId = view.id
         etPropName.setText(label)
-        etPropWidth.setText(view.width.toString())
-        etPropHeight.setText(view.height.toString())
+        
+        // Fix: Convert Pixels to DP for display
+        val density = rootView.resources.displayMetrics.density
+        etPropWidth.setText((view.width / density).toInt().toString())
+        etPropHeight.setText((view.height / density).toInt().toString())
+        
         etPropTopicConfig.setText(topicConfig)
         
         // Expand Bottom Sheet
@@ -76,6 +80,18 @@ class PropertiesSheetManager(
              e.printStackTrace()
              // Fallback if not a behavior view
              propertyContainer.visibility = View.VISIBLE
+        }
+    }
+
+    fun hide() {
+        try {
+            val behavior = BottomSheetBehavior.from(propertyContainer)
+            if (behavior.state != BottomSheetBehavior.STATE_HIDDEN) {
+                behavior.state = BottomSheetBehavior.STATE_HIDDEN
+            }
+        } catch (e: Exception) {
+             e.printStackTrace()
+             propertyContainer.visibility = View.GONE
         }
     }
 

@@ -19,21 +19,21 @@ class SidebarManager(
         propertyContainer?.visibility = View.VISIBLE
         componentContainer?.visibility = View.GONE
         runModeContainer?.visibility = View.GONE
-        openDrawer()
+        // openDrawer() // User requested NO auto-open
     }
 
     fun showComponentsPanel() {
         propertyContainer?.visibility = View.GONE
         componentContainer?.visibility = View.VISIBLE
         runModeContainer?.visibility = View.GONE
-        openDrawer()
+        // openDrawer() // User requested NO auto-open
     }
 
     fun showRunModePanel() {
         propertyContainer?.visibility = View.GONE
         componentContainer?.visibility = View.GONE
         runModeContainer?.visibility = View.VISIBLE
-        openDrawer()
+        // openDrawer() // User requested NO auto-open
     }
 
     private fun openDrawer() {
