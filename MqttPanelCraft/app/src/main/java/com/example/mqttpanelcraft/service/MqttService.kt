@@ -193,33 +193,42 @@ class MqttService : Service() {
     }
     
     private fun subscribe(topic: String?) {
-        if (topic.isNullOrEmpty() || mqttClient == null || !mqttClient!!.isConnected) return
-        try {
-            mqttClient!!.subscribe(topic)
-            MqttRepository.addLog("Service: Subscribed to $topic", getTime())
-        } catch (e: Exception) {
-             MqttRepository.addLog("Service: Subscribe Error - ${e.message}", getTime())
+        if (topic.isNullOrEmpty()) return
+        serviceScope.launch {
+            if (mqttClient == null || !mqttClient!!.isConnected) return@launch
+            try {
+                mqttClient!!.subscribe(topic)
+                MqttRepository.addLog("Service: Subscribed to $topic", getTime())
+            } catch (e: Exception) {
+                 MqttRepository.addLog("Service: Subscribe Error - ${e.message}", getTime())
+            }
         }
     }
     
     private fun unsubscribe(topic: String?) {
-        if (topic.isNullOrEmpty() || mqttClient == null || !mqttClient!!.isConnected) return
-        try {
-            mqttClient!!.unsubscribe(topic)
-            MqttRepository.addLog("Service: Unsubscribed from $topic", getTime())
-        } catch (e: Exception) {
-             MqttRepository.addLog("Service: Unsubscribe Error - ${e.message}", getTime())
+        if (topic.isNullOrEmpty()) return
+        serviceScope.launch {
+            if (mqttClient == null || !mqttClient!!.isConnected) return@launch
+            try {
+                mqttClient!!.unsubscribe(topic)
+                MqttRepository.addLog("Service: Unsubscribed from $topic", getTime())
+            } catch (e: Exception) {
+                 MqttRepository.addLog("Service: Unsubscribe Error - ${e.message}", getTime())
+            }
         }
     }
 
     private fun publish(topic: String?, payload: String?) {
-        if (topic.isNullOrEmpty() || payload == null || mqttClient == null || !mqttClient!!.isConnected) return
-        try {
-            val message = MqttMessage(payload.toByteArray())
-            mqttClient!!.publish(topic, message)
-             MqttRepository.addLog("Service TX [$topic]: $payload", getTime())
-        } catch (e: Exception) {
-             MqttRepository.addLog("Service: Publish Error - ${e.message}", getTime())
+        if (topic.isNullOrEmpty() || payload == null) return
+        serviceScope.launch {
+             if (mqttClient == null || !mqttClient!!.isConnected) return@launch
+             try {
+                val message = MqttMessage(payload.toByteArray())
+                mqttClient!!.publish(topic, message)
+                 MqttRepository.addLog("Service TX [$topic]: $payload", getTime())
+            } catch (e: Exception) {
+                 MqttRepository.addLog("Service: Publish Error - ${e.message}", getTime())
+            }
         }
     }
 

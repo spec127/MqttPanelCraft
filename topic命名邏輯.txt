@@ -1,0 +1,119 @@
+App → Edge MQTT 通訊與程式生成規格 v0.3
+0) 目的與原則
+•	使用者在 App 只操作 UI 元件，不需要理解 MQTT topic（預設模式鎖住 topic）。
+•	系統統一使用 set/val 方向：
+o	set：App → Edge（命令/設定/同步請求）
+o	val：Edge → App（狀態/數值/回覆/ACK）
+•	同一種 type 對應同一份 Arduino handler（副程式），不同元件只差 index 與變數。
+________________________________________
+1) Topic 命名規則（固定）
+格式：
+{projectName}/{projectId}/{type}/{index}/{dir}
+•	dir 只能是 set 或 val（禁止 cmd/state）
+•	index：從 1 開始
+index 規則
+1.	index 從 1 開始
+2.	同一 type 下 index 必須唯一
+3.	刪除元件後 index 回收（優先補缺號）
+________________________________________
+2) type 集合（MVP，已更新）
+2.1 控制/狀態類
+•	switch：二態 0/1
+•	dimmer：0~100 連續比例
+•	select：離散多選（下拉/多段切換）
+2.2 數值/文字類
+•	number：一般數值（溫度/濕度/pH…）
+•	text：文字通道（已合併原 content，同時支援 set/val）
+2.3 同步類（重要）
+•	sync：同步請求與同步 ACK（sync 也算一種 type，也需要 handler）
+________________________________________
+3) Payload 規格（v0.3 定死，避免混亂）
+switch
+•	set："0" / "1"
+•	val："0" / "1"
+dimmer
+•	set："0" ~ "100"（整數字串）
+•	val："0" ~ "100"
+select（離散多選）
+•	set："0" ~ "N-1"（整數字串）
+•	val：同上
+App 保存選項清單（顯示文字 ↔ value 整數）。
+number
+•	val：數字字串（整數/浮點皆可），例如 "27.5"
+text（合併 content）
+•	set：文字字串（App → 裝置，例如送到 LCD/OLED 顯示）
+•	val：文字字串（裝置 → App 狀態回報）
+sync
+•	set："1"（觸發同步）
+•	val："ok"（同步 ACK，可選）
+________________________________________
+4) 顯示名稱與 Topic 的關係（鎖住 topic）
+•	使用者可以改 displayName（UI 顯示用）。
+•	displayName 不影響 topic。
+•	預設模式使用者 不能改 type/index/topic。
+________________________________________
+5) 「提供 API」按鈕輸出內容（給 AI 產生 Arduino 註解用）
+點擊後輸出一段文字（或 JSON）包含：
+1.	Topic 格式說明（set/val 意義）
+2.	displayName ↔ topic 對照表（每個元件一列）
+3.	使用者目前 App 語言（建議 Arduino 註解語言跟 App 語言一致）
+4.	type/payload 摘要（switch 0/1、dimmer 0-100…）
+________________________________________
+6) Arduino 架構：每個 type 一份 handler（副程式） + 統一 mqttpanel_* 命名
+6.1 命名規則
+採用底線專案風格：mqttpanel_<type>_*
+6.2 subscribe 與 publish 的設計原則
+•	Subscribe 是註冊行為，不是每次 loop 呼叫。
+•	背景收訊息依賴：
+o	MQTT client 的 loop()（或等價函式）
+o	message callback/router（收到 topic 後派發到對應 handler）
+因此 API 形式分兩種：
+(A) 註冊訂閱（setup 呼叫一次）
+•	mqttpanel_switch_sub(topicSet, &varBool)
+•	mqttpanel_dimmer_sub(topicSet, &varInt)
+•	mqttpanel_select_sub(topicSet, &varInt)
+•	mqttpanel_number_sub(...)（若你要支援 number 的 set 可加，MVP 可先不做）
+•	mqttpanel_text_sub(topicSet, &varString)
+•	mqttpanel_sync_sub(topicSet)（收到即觸發同步）
+(B) 發送（事件觸發/定時觸發）
+•	mqttpanel_switch_pub(topicVal, varBool)
+•	mqttpanel_dimmer_pub(topicVal, varInt)
+•	mqttpanel_select_pub(topicVal, varInt)
+•	mqttpanel_number_pub(topicVal, varFloat)
+•	mqttpanel_text_pub(topicVal, varString)
+(C) 背景運行（loop 必須一直跑）
+•	mqttpanel_loop()：內部呼叫 mqtt client 的 loop()/poll
+________________________________________
+7) 同步策略（sync type 的 handler 行為）
+7.1 Topic
+•	.../sync/1/set：App 發同步請求
+•	.../sync/1/val：裝置回 ACK（可選）
+7.2 裝置收到 sync/set 後要做的事
+1.	觸發 mqttpanel_publish_all_vals()：重送所有已存在元件的 val 一輪
+2.	（可選）publish .../sync/1/val = "ok"
+sync 只重送 val，不重送 set（避免重播命令）。
+________________________________________
+8) AP 模式網頁：顯示「程式變數 ↔ 通道 ↔ topic」並可快速改 topic
+8.1 目的
+•	讓使用者在不重刷韌體的前提下，快速把「裝置內部變數」對到新的 topic。
+8.2 重要限制
+•	Arduino 無法自動反射變數名稱，所以需要你在程式內建立 channels metadata table（手動登錄）。
+8.3 AP 頁面功能
+1.	顯示表格：varName/label/type/index/topicSet/topicVal
+2.	允許修改：projectName/projectId 或（選配）每個通道 topic override
+3.	套用方式：建議「儲存後 MQTT 重連/裝置重啟」以確保 subscribe 乾淨更新
+________________________________________
+9) 一鍵生成 Arduino 程式（App 端）
+1.	讀取目前畫面所有元件（type/index/displayName/元件參數）
+2.	引入需要的 type handler（同 type 只引入一次）
+3.	生成每個元件對應的 topic 字串
+4.	在 setup() 註冊所有 *_sub()
+5.	在 loop() 跑 mqttpanel_loop()，並在需要時觸發 *_pub()
+重要限制（維持你的原則）
+•	一鍵生成不負責感測器/腳位讀取怎麼寫
+•	只提供你規定的變數位置（例如 float number_value_xxx;），使用者自己把 analogRead/感測器讀取結果塞進去即可
+________________________________________
+10) 版本備註（之後擴充方向）
+•	若未來要支援圖片/大內容傳輸，再把 text 拆回 content（但 v0.3 先不做）。
+•	若要支援進階同步（只同步部分 type/index），可把 sync payload 升級成 JSON（v0.3 先用 "1"）。
+

@@ -82,19 +82,32 @@ class DashboardActivity : AppCompatActivity() {
 
             // Initialize Data
             ProjectRepository.initialize(this)
+            
+            // Apply Theme (Dashboard Respects Setting)
+            com.example.mqttpanelcraft.utils.ThemeManager.applyTheme(this)
 
-            // Initialize Ads
-            com.example.mqttpanelcraft.utils.AdManager.initialize(this)
             // Initialize Ads
             com.example.mqttpanelcraft.utils.AdManager.initialize(this)
             com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer)
 
             // Load Persistent Sort Mode
             val prefs = getSharedPreferences("AppSettings", MODE_PRIVATE)
-            currentSortMode = prefs.getInt("sort_mode", 5)
+            currentSortMode = prefs.getInt("sort_mode", 5) // loadProjects() removed - superseded by LiveData observer in onCreate
             applySortMode(currentSortMode)
 
             setupSettingsUI() // v96: New Expandable UI
+            
+            // vFix: Observe LiveData for Async Loading
+            ProjectRepository.projectsLiveData.observe(this) { projects ->
+                projectAdapter.updateData(projects)
+                if (projects.isEmpty()) {
+                    binding.emptyState.visibility = View.VISIBLE
+                    binding.rvProjects.visibility = View.GONE
+                } else {
+                    binding.emptyState.visibility = View.GONE
+                    binding.rvProjects.visibility = View.VISIBLE
+                }
+            }
 
         } catch (e: Exception) {
             CrashLogger.logError(this, "Dashboard Init Failed", e)
@@ -103,7 +116,7 @@ class DashboardActivity : AppCompatActivity() {
     
     override fun onResume() {
         super.onResume()
-        loadProjects()
+        // loadProjects() - Removed (Using LiveData)
         startConnectionCheck()
     }
 
@@ -122,14 +135,15 @@ class DashboardActivity : AppCompatActivity() {
         val darkModeItem = menu.findItem(R.id.nav_dark_mode)
         val switchDarkMode = darkModeItem.actionView?.findViewById<SwitchMaterial>(R.id.drawer_switch)
 
-        val currentNightMode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
-        switchDarkMode?.isChecked = currentNightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val isDark = com.example.mqttpanelcraft.utils.ThemeManager.isDarkThemeEnabled(this)
+        switchDarkMode?.isChecked = isDark
 
         switchDarkMode?.setOnCheckedChangeListener { _, isChecked ->
-            val mode = if (isChecked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
-            AppCompatDelegate.setDefaultNightMode(mode)
-            getSharedPreferences("AppSettings", MODE_PRIVATE).edit().putBoolean("dark_mode", isChecked).apply()
-            // Close drawer after short delay or keep open? Usually better to keep open for switches.
+            com.example.mqttpanelcraft.utils.ThemeManager.setTheme(this, isChecked)
+             // Close drawer after delay to allow animation
+             binding.drawerLayout.postDelayed({
+                 binding.drawerLayout.closeDrawer(GravityCompat.START)
+             }, 300)
         }
 
         // 2. Ads Switch
@@ -195,8 +209,7 @@ class DashboardActivity : AppCompatActivity() {
                 else -> 5
             }
             applySortMode(newMode)
-            loadProjects()
-            updateSettingsTitle(tvTitle) // Update title on change
+            updateSettingsTitle(tvTitle) // Update title on change. LiveData will refresh UI.
         }
 
         // Dark Mode & Ads removed from here (moved to Drawer)
@@ -274,7 +287,7 @@ class DashboardActivity : AppCompatActivity() {
                         .setPositiveButton("Delete") { _, _ ->
                             try {
                                 ProjectRepository.deleteProject(project.id)
-                                loadProjects() // Refresh list
+                                // LiveData will refresh UI automatically
                                 Toast.makeText(this, "Project deleted", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
                                 CrashLogger.logError(this, "Delete Failed", e)
@@ -315,30 +328,6 @@ class DashboardActivity : AppCompatActivity() {
         binding.fabAddProject.setOnClickListener {
             val intent = Intent(this, SetupActivity::class.java)
             startActivity(intent)
-        }
-    }
-
-    private fun loadProjects() {
-        try {
-            val projects = ProjectRepository.getAllProjects()
-
-            // v85: Sorting is now persistent in Repository (Action-based)
-            // No need to sort here dynamically.
-
-            // v38: Don't just set data, allow connection check to update it.
-            // But we need initial data.
-            projectAdapter.updateData(projects)
-
-            if (projects.isEmpty()) {
-                binding.emptyState.visibility = View.VISIBLE
-                binding.rvProjects.visibility = View.GONE
-            } else {
-                binding.emptyState.visibility = View.GONE
-                binding.rvProjects.visibility = View.VISIBLE
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this, "Error loading projects: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 

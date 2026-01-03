@@ -66,7 +66,10 @@ class SetupActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_setup)
         ProjectRepository.initialize(this)
-
+        
+        // Apply Global Theme
+        com.example.mqttpanelcraft.utils.ThemeManager.applyTheme(this)
+        
         setupToolbar()
         setupViews()
         
@@ -562,7 +565,12 @@ class SetupActivity : AppCompatActivity() {
         if (returnToHome) {
              finish()
         } else {
-             val intent = android.content.Intent(this, ProjectViewActivity::class.java)
+             val targetActivity = if (newProject.type == ProjectType.WEBVIEW) {
+                 WebViewActivity::class.java
+             } else {
+                 ProjectViewActivity::class.java
+             }
+             val intent = android.content.Intent(this, targetActivity)
              intent.putExtra("PROJECT_ID", targetProjectId)
              startActivity(intent)
              finish()

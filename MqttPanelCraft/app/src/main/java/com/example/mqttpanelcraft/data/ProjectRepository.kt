@@ -7,30 +7,54 @@ import com.example.mqttpanelcraft.model.ComponentData
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import kotlinx.coroutines.launch
 
 object ProjectRepository {
-    private val projects = mutableListOf<Project>()
+    // Thread-Unsafe List guarded by @Synchronized
+    private val projects = ArrayList<Project>()
     private var file: File? = null
     private const val FILE_NAME = "projects.json"
+    
+    // Coroutine Scope for I/O - Kept for load but save is synced now
+    private val repoScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO + kotlinx.coroutines.Job())
+    
+    // LiveData for UI Observation
+    private val _projectsLiveData = androidx.lifecycle.MutableLiveData<List<Project>>()
+    val projectsLiveData: androidx.lifecycle.LiveData<List<Project>> = _projectsLiveData
 
+    // Debugging Status
+    private val _saveStatus = androidx.lifecycle.MutableLiveData<String>()
+    val saveStatus: androidx.lifecycle.LiveData<String> = _saveStatus
+
+    private var isInitialized = false
+
+    @Synchronized
     fun initialize(context: Context) {
-        file = File(context.filesDir, "projects.json")
-        loadProjects()
+        file = File(context.filesDir, FILE_NAME)
+        if (!isInitialized) {
+            loadProjects()
+            isInitialized = true
+        }
     }
 
     private fun loadProjects() {
-        projects.clear()
         if (file == null || !file!!.exists()) {
-             // Defaults if empty
-            projects.add(Project("1", "Smart Home", "broker.emqx.io", 1883, "", "", "", ProjectType.HOME, false))
-            projects.add(Project("2", "Office Env", "test.mosquitto.org", 1883, "", "", "", ProjectType.FACTORY, false))
-            saveProjects()
-            return
+             synchronized(this) {
+                 if (projects.isEmpty()) {
+                    projects.add(Project("1", "Smart Home", "broker.emqx.io", 1883, "", "", "", ProjectType.HOME, false))
+                    projects.add(Project("2", "Office Env", "test.mosquitto.org", 1883, "", "", "", ProjectType.FACTORY, false))
+                 }
+                 saveProjects()
+                 updateLiveData()
+             }
+             return
         }
 
         try {
             val jsonStr = file!!.readText()
             val jsonArray = JSONArray(jsonStr)
+            val newProjects = mutableListOf<Project>()
+            
             for (i in 0 until jsonArray.length()) {
                 val obj = jsonArray.getJSONObject(i)
                 val id = obj.getString("id")
@@ -48,7 +72,6 @@ object ProjectRepository {
 
                 val project = Project(id, name, broker, port, user, pass, client, type, false, mutableListOf(), customCode, createdAt, lastOpenedAt)
 
-                // Load Components
                 val compsArray = obj.optJSONArray("components")
                 if (compsArray != null) {
                     for (k in 0 until compsArray.length()) {
@@ -74,23 +97,29 @@ object ProjectRepository {
                         project.components.add(comp)
                     }
                 }
-
-                projects.add(project)
+                newProjects.add(project)
             }
+            
+            synchronized(this) {
+                projects.clear()
+                projects.addAll(newProjects)
+                updateLiveData()
+            }
+            
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
+    @Synchronized
     private fun saveProjects() {
-        if (file == null) {
-            android.util.Log.e("ProjectRepo", "saveProjects: File is null!")
-            return
-        }
+        if (file == null) return
+        
         try {
+            val projectsSnapshot = projects.toList() // Copy inside sync block
             val jsonArray = JSONArray()
-            android.util.Log.d("ProjectRepo", "Saving ${projects.size} projects...")
-            for (p in projects) {
+            
+            for (p in projectsSnapshot) {
                 val obj = JSONObject()
                 obj.put("id", p.id)
                 obj.put("name", p.name)
@@ -104,9 +133,7 @@ object ProjectRepository {
                 obj.put("createdAt", p.createdAt)
                 obj.put("lastOpenedAt", p.lastOpenedAt)
 
-                // Save Components
                 val compsArray = JSONArray()
-                android.util.Log.d("ProjectRepo", "Saving Project [${p.id}] with ${p.components.size} components.")
                 for (c in p.components) {
                     val cObj = JSONObject()
                     cObj.put("id", c.id)
@@ -125,52 +152,59 @@ object ProjectRepository {
                     compsArray.put(cObj)
                 }
                 obj.put("components", compsArray)
-
                 jsonArray.put(obj)
             }
-            file!!.writeText(jsonArray.toString())
-            android.util.Log.d("ProjectRepo", "Saved successfully to ${file!!.absolutePath}")
+            file!!.writeText(jsonArray.toString(2))
+            android.util.Log.d("ProjectRepo", "Saved successfully (Sync)")
         } catch (e: Exception) {
             android.util.Log.e("ProjectRepo", "Error saving projects", e)
-            e.printStackTrace()
         }
     }
 
+    private fun updateLiveData() {
+        _projectsLiveData.postValue(projects.toList())
+    }
 
+    @Synchronized
     fun getAllProjects(): List<Project> {
         return projects.toList()
     }
     
+    @Synchronized
     fun getProjectById(id: String): Project? {
         return projects.find { it.id == id }
     }
 
+    @Synchronized
     fun addProject(project: Project) {
-        // Safety: Ensure ID is unique. If collision, auto-generate new ID.
         var finalProject = project
         if (getProjectById(project.id) != null) {
             val newId = generateId()
-            android.util.Log.w("Repo", "Duplicate ID detected [${project.id}]. Re-assigning to [$newId].")
             finalProject = project.copy(id = newId)
         }
         projects.add(finalProject)
+        updateLiveData()
         saveProjects()
     }
     
+    @Synchronized
     fun updateProject(updatedProject: Project) {
         val index = projects.indexOfFirst { it.id == updatedProject.id }
         if (index != -1) {
             projects[index] = updatedProject
+            updateLiveData()
             saveProjects()
         }
     }
     
+    @Synchronized
     fun deleteProject(id: String) {
-        projects.removeIf { it.id == id }
-        saveProjects()
+        val removed = projects.removeIf { it.id == id }
+        if (removed) {
+            updateLiveData()
+            saveProjects()
+        }
     }
-
-
 
     fun generateId(): String {
         val secureRandom = java.security.SecureRandom()
@@ -311,12 +345,14 @@ object ProjectRepository {
     fun swapProjects(fromIndex: Int, toIndex: Int) {
         if (fromIndex in projects.indices && toIndex in projects.indices) {
             java.util.Collections.swap(projects, fromIndex, toIndex)
+            updateLiveData()
             saveProjects()
         }
     }
 
     fun sortProjects(comparator: Comparator<Project>) {
         java.util.Collections.sort(projects, comparator)
+        updateLiveData()
         saveProjects()
     }
 }
