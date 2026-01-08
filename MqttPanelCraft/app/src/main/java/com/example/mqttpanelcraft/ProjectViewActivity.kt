@@ -74,8 +74,20 @@ class ProjectViewActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (this::idleAdController.isInitialized && !isEditMode) {
+            idleAdController.start()
+        }
+    }
+
     override fun onPause() {
         super.onPause()
+        
+        if (this::idleAdController.isInitialized) {
+            idleAdController.stop()
+        }
+
         // 離開頁面時 (包含按 Home 鍵、跳轉設定頁、關閉螢幕)，執行全量同步與儲存
         // 這符合使用者期望的「Option 1: 離開時儲存」，且效能負擔極低 (僅一次寫入)
         syncComponentsState()

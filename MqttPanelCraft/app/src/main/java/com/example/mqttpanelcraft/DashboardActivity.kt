@@ -54,7 +54,8 @@ class DashboardActivity : AppCompatActivity() {
                 val bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
                 // Apply padding to the content container inside Drawer (CoordinatorLayout is usually first child)
                 val content = binding.drawerLayout.getChildAt(0)
-                content.setPadding(0, bars.top, 0, 0)
+                // Fix: Apply BOTTOM padding too so Banner Ad (gravity=bottom) isn't covered by Nav Bar
+                content.setPadding(0, bars.top, 0, bars.bottom)
 
                 // vFix: Light Status Bar for Dashboard
                 val isDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
@@ -88,7 +89,7 @@ class DashboardActivity : AppCompatActivity() {
 
             // Initialize Ads
             com.example.mqttpanelcraft.utils.AdManager.initialize(this)
-            com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer)
+            com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer, binding.fabAddProject)
 
             // Load Persistent Sort Mode
             val prefs = getSharedPreferences("AppSettings", MODE_PRIVATE)
@@ -116,7 +117,9 @@ class DashboardActivity : AppCompatActivity() {
     
     override fun onResume() {
         super.onResume()
-        // loadProjects() - Removed (Using LiveData)
+        // Refresh Banner Ad every time we return
+        com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer, binding.fabAddProject)
+        
         startConnectionCheck()
     }
 
@@ -153,7 +156,7 @@ class DashboardActivity : AppCompatActivity() {
         switchAds?.isChecked = com.example.mqttpanelcraft.utils.AdManager.isAdsDisabled
         switchAds?.setOnCheckedChangeListener { _, isChecked ->
             com.example.mqttpanelcraft.utils.AdManager.setDisabled(isChecked, this)
-            com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer)
+            // Banner ads are not affected by this setting, so no reload needed
         }
 
         binding.navigationView.setNavigationItemSelectedListener { item ->
@@ -286,8 +289,10 @@ class DashboardActivity : AppCompatActivity() {
                         .setMessage("Are you sure you want to delete '${project.name}'?")
                         .setPositiveButton("Delete") { _, _ ->
                             try {
+                                // Immediately remove from UI
+                                projectAdapter.removeItem(project)
+                                // Then delete from repository
                                 ProjectRepository.deleteProject(project.id)
-                                // LiveData will refresh UI automatically
                                 Toast.makeText(this, "Project deleted", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
                                 CrashLogger.logError(this, "Delete Failed", e)
@@ -365,7 +370,10 @@ class DashboardActivity : AppCompatActivity() {
         }
 
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-             projectAdapter.updateData(updatedList)
+             // Re-verify existence to prevent ghosting (race condition with delete)
+             val validIds = ProjectRepository.getAllProjects().map { it.id }.toSet()
+             val validList = updatedList.filter { it.id in validIds }
+             projectAdapter.updateData(validList)
         }
     }
 

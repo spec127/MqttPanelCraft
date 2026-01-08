@@ -114,38 +114,66 @@ class SidebarManager(
 
         // Orientation Control
         val switchPortrait = rootView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchLockPortrait)
-        val switchLandscape = rootView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchLockLandscape)
+        val switchLandscapeLeft = rootView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchLockLandscapeLeft)
+        val switchLandscapeRight = rootView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchLockLandscapeRight)
 
-        if (switchPortrait != null && switchLandscape != null) {
+        if (switchPortrait != null && switchLandscapeLeft != null && switchLandscapeRight != null) {
             val isPortraitLocked = prefs.getBoolean("lock_portrait", false)
-            val isLandscapeLocked = prefs.getBoolean("lock_landscape", false)
+            val isLandscapeLeftLocked = prefs.getBoolean("lock_landscape_left", false)
+            val isLandscapeRightLocked = prefs.getBoolean("lock_landscape_right", false)
 
             switchPortrait.isChecked = isPortraitLocked
-            switchLandscape.isChecked = isLandscapeLocked
+            switchLandscapeLeft.isChecked = isLandscapeLeftLocked
+            switchLandscapeRight.isChecked = isLandscapeRightLocked
 
             // Apply initial state
-            if (isPortraitLocked) activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            else if (isLandscapeLocked) activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            else activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            if (isPortraitLocked) {
+                activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            } else if (isLandscapeLeftLocked) {
+                activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+            } else if (isLandscapeRightLocked) {
+                activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            } else {
+                activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            }
 
             switchPortrait.setOnCheckedChangeListener { _, isChecked ->
                 if (isChecked) {
-                    switchLandscape.isChecked = false
+                    switchLandscapeLeft.isChecked = false
+                    switchLandscapeRight.isChecked = false
                     activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                 } else {
-                    if (!switchLandscape.isChecked) activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                    if (!switchLandscapeLeft.isChecked && !switchLandscapeRight.isChecked) {
+                        activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                    }
                 }
                 prefs.edit().putBoolean("lock_portrait", isChecked).apply()
             }
 
-            switchLandscape.setOnCheckedChangeListener { _, isChecked ->
+            switchLandscapeLeft.setOnCheckedChangeListener { _, isChecked ->
                 if (isChecked) {
                     switchPortrait.isChecked = false
+                    switchLandscapeRight.isChecked = false
+                    activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+                } else {
+                    if (!switchPortrait.isChecked && !switchLandscapeRight.isChecked) {
+                        activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                    }
+                }
+                prefs.edit().putBoolean("lock_landscape_left", isChecked).apply()
+            }
+
+            switchLandscapeRight.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) {
+                    switchPortrait.isChecked = false
+                    switchLandscapeLeft.isChecked = false
                     activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
                 } else {
-                    if (!switchPortrait.isChecked) activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                    if (!switchPortrait.isChecked && !switchLandscapeLeft.isChecked) {
+                        activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                    }
                 }
-                prefs.edit().putBoolean("lock_landscape", isChecked).apply()
+                prefs.edit().putBoolean("lock_landscape_right", isChecked).apply()
             }
         }
     }

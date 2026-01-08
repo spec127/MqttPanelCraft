@@ -72,4 +72,12 @@ class ProjectAdapter(
         projects = newProjects
         notifyDataSetChanged()
     }
+    
+    fun removeItem(project: Project) {
+        val position = projects.indexOf(project)
+        if (position != -1) {
+            projects = projects.toMutableList().apply { removeAt(position) }
+            notifyItemRemoved(position)
+        }
+    }
 }

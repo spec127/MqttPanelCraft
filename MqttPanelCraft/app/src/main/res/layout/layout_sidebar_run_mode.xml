@@ -25,10 +25,19 @@
         android:layout_marginBottom="12dp" />
 
     <com.google.android.material.switchmaterial.SwitchMaterial
-        android:id="@+id/switchLockLandscape"
+        android:id="@+id/switchLockLandscapeLeft"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Lock Landscape"
+        android:text="Lock Landscape Left"
+        android:checked="false"
+        android:textSize="14sp"
+        android:layout_marginBottom="12dp" />
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switchLockLandscapeRight"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Lock Landscape Right"
         android:checked="false"
         android:textSize="14sp"
         android:layout_marginBottom="12dp" />

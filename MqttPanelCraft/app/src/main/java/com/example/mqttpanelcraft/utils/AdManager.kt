@@ -39,10 +39,10 @@ object AdManager {
         isAdsDisabled = prefs.getBoolean("ads_disabled", false)
         Log.d(TAG, "Ads Disabled: $isAdsDisabled")
 
-        if (!isAdsDisabled) {
-            MobileAds.initialize(context) { status ->
-                Log.d(TAG, "AdMob Initialized: ${status.adapterStatusMap}")
-            }
+        // Always initialize MobileAds so Banner ads (which are always shown) work.
+        // limit usage of Interstitial/Rewarded based on flag later.
+        MobileAds.initialize(context) { status ->
+            Log.d(TAG, "AdMob Initialized: ${status.adapterStatusMap}")
         }
     }
     
@@ -58,20 +58,41 @@ object AdManager {
     }
 
     // --- Banner Ads ---
-    
-    fun loadBannerAd(activity: Activity, container: FrameLayout) {
-        if (isAdsDisabled) {
-            container.visibility = View.GONE
-            container.removeAllViews()
-            return
+
+    private fun getAdSize(activity: Activity): AdSize {
+        // Determine the screen width (less decorations) to use for the ad width.
+        val display = activity.windowManager.defaultDisplay
+        val outMetrics = android.util.DisplayMetrics()
+        display.getMetrics(outMetrics)
+
+        val density = outMetrics.density
+        
+        // Use full width of screen
+        var adWidthPixels = outMetrics.widthPixels.toFloat()
+        
+        // If you had margins, you'd subtract them here. 
+        // For now we use full width.
+        if (adWidthPixels == 0f) {
+            adWidthPixels = outMetrics.widthPixels.toFloat() // Fallback
         }
 
+        val adWidth = (adWidthPixels / density).toInt()
+        return AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(activity, adWidth)
+    }
+    
+    fun loadBannerAd(activity: Activity, container: FrameLayout, fab: View? = null) {
+        // Banner ads are always shown, not affected by ads disabled setting
         val adView = AdView(activity)
-        adView.setAdSize(AdSize.BANNER)
+        
+        // Use Adaptive Banner Size
+        val adSize = getAdSize(activity)
+        adView.setAdSize(adSize)
+        
         adView.adUnitId = BANNER_AD_ID
 
         // Create a wrapper for Ad + Close Button
         val wrapper = FrameLayout(activity)
+        // Reset layout params to wrap the adaptive height
         wrapper.layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
@@ -85,23 +106,8 @@ object AdManager {
             gravity = android.view.Gravity.CENTER
         }
         
-        wrapper.addView(adView, adParams)
-
-        // Close Button
-        val closeBtn = ImageButton(activity)
-        closeBtn.setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
-        closeBtn.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-        val btnParams = FrameLayout.LayoutParams(
-            60, 60
-        ).apply {
-            gravity = android.view.Gravity.TOP or android.view.Gravity.END
-        }
-        closeBtn.setOnClickListener {
-            container.visibility = View.GONE
-            adView.destroy()
-        }
         
-        wrapper.addView(closeBtn, btnParams)
+        wrapper.addView(adView, adParams)
 
         container.removeAllViews()
         container.addView(wrapper)
@@ -112,10 +118,16 @@ object AdManager {
         adView.adListener = object : AdListener() {
             override fun onAdLoaded() {
                container.visibility = View.VISIBLE
+               // Animate FAB up
+               val heightPx = adSize.getHeightInPixels(activity).toFloat()
+               fab?.animate()?.translationY(-heightPx)?.setDuration(300)?.start()
             }
             override fun onAdFailedToLoad(error: LoadAdError) {
                 Log.e(TAG, "Banner failed to load: ${error.message}")
+                android.widget.Toast.makeText(activity, "Ad Failed: ${error.message}", android.widget.Toast.LENGTH_SHORT).show()
                 container.visibility = View.GONE
+                // Reset FAB position
+                fab?.animate()?.translationY(0f)?.setDuration(300)?.start()
             }
         }
     }
