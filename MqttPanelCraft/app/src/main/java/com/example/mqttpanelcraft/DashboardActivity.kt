@@ -89,7 +89,7 @@ class DashboardActivity : AppCompatActivity() {
 
             // Initialize Ads
             com.example.mqttpanelcraft.utils.AdManager.initialize(this)
-            com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer, binding.fabAddProject)
+            // Deferred load in onResume to speed up start/restart
 
             // Load Persistent Sort Mode
             val prefs = getSharedPreferences("AppSettings", MODE_PRIVATE)
@@ -110,6 +110,11 @@ class DashboardActivity : AppCompatActivity() {
                 }
             }
 
+            // Restore Drawer State (keeps drawer open across theme recreations)
+            if (savedInstanceState?.getBoolean("DRAWER_OPEN") == true) {
+                binding.drawerLayout.openDrawer(GravityCompat.START)
+            }
+
         } catch (e: Exception) {
             CrashLogger.logError(this, "Dashboard Init Failed", e)
         }
@@ -118,9 +123,37 @@ class DashboardActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         // Refresh Banner Ad every time we return
-        com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer, binding.fabAddProject)
+        // Defer Ad Load to allow UI to render first (speeds up Theme Switch)
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            if (!isFinishing && !isDestroyed) {
+                com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer, binding.fabAddProject)
+            }
+        }, 100)
+        
         
         startConnectionCheck()
+        updateUserBadge()
+    }
+
+    private fun updateUserBadge() {
+        // vUpdate: Premium Badge Logic
+        val headerView = binding.navigationView.getHeaderView(0)
+        val tvBadge = headerView.findViewById<android.widget.TextView>(R.id.tvPremiumBadge) ?: return
+        
+        if (com.example.mqttpanelcraft.utils.PremiumManager.isPremium(this)) {
+            tvBadge.text = "Premium"
+            tvBadge.setTextColor(android.graphics.Color.parseColor("#FFD700"))
+            tvBadge.setBackgroundResource(R.drawable.bg_premium_badge)
+        } else {
+            tvBadge.text = "Free"
+            tvBadge.setTextColor(android.graphics.Color.parseColor("#BDBDBD"))
+            tvBadge.setBackgroundResource(R.drawable.bg_free_badge)
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean("DRAWER_OPEN", binding.drawerLayout.isDrawerOpen(GravityCompat.START))
     }
 
     private fun setupToolbar() {
@@ -143,21 +176,21 @@ class DashboardActivity : AppCompatActivity() {
 
         switchDarkMode?.setOnCheckedChangeListener { _, isChecked ->
             com.example.mqttpanelcraft.utils.ThemeManager.setTheme(this, isChecked)
-             // Close drawer after delay to allow animation
-             binding.drawerLayout.postDelayed({
-                 binding.drawerLayout.closeDrawer(GravityCompat.START)
-             }, 300)
         }
 
         // 2. Ads Switch
         val adsItem = menu.findItem(R.id.nav_ads)
         val switchAds = adsItem.actionView?.findViewById<SwitchMaterial>(R.id.drawer_switch)
 
-        switchAds?.isChecked = com.example.mqttpanelcraft.utils.AdManager.isAdsDisabled
+        switchAds?.isChecked = com.example.mqttpanelcraft.utils.PremiumManager.isPremium(this)
         switchAds?.setOnCheckedChangeListener { _, isChecked ->
-            com.example.mqttpanelcraft.utils.AdManager.setDisabled(isChecked, this)
-            // Banner ads are not affected by this setting, so no reload needed
+            com.example.mqttpanelcraft.utils.PremiumManager.setPremium(this, isChecked)
+            // Refresh banner immediately if possible
+            com.example.mqttpanelcraft.utils.AdManager.loadBannerAd(this, binding.bannerAdContainer, binding.fabAddProject)
+            updateUserBadge()
         }
+
+        updateUserBadge() // Initial state
 
         binding.navigationView.setNavigationItemSelectedListener { item ->
             when (item.itemId) {

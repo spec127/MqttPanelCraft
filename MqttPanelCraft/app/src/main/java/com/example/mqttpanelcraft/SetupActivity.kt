@@ -548,7 +548,7 @@ class SetupActivity : AppCompatActivity() {
         val targetProjectId = newProject.id
         var isRewardEarned = false
 
-        if (com.example.mqttpanelcraft.utils.AdManager.isAdsDisabled) {
+        if (com.example.mqttpanelcraft.utils.PremiumManager.isPremium(this)) {
              // Skip Ads
              saveAndFinish(newProject, targetProjectId)
              return
