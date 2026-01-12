@@ -24,6 +24,11 @@ class CanvasInteractionManager(
     }
 
     private val density = canvasCanvas.context.resources.displayMetrics.density
+    private var bottomInset: Int = 0
+
+    fun updateBottomInset(inset: Int) {
+        this.bottomInset = inset
+    }
     private var isDeleteHovered = false
 
     companion object {
@@ -31,8 +36,8 @@ class CanvasInteractionManager(
         const val RESIZE_STEP_DP = 10
         const val DRAG_THRESHOLD = 10f
     }
-    private val gridUnitPx = (GRID_UNIT_DP * density).toInt()
-    private val resizeStepPx = (RESIZE_STEP_DP * density).toInt()
+    private val gridUnitPx = (GRID_UNIT_DP * density).toInt().coerceAtLeast(10)
+    private val resizeStepPx = (RESIZE_STEP_DP * density).toInt().coerceAtLeast(10)
 
     private enum class Mode { IDLE, DRAGGING, RESIZING }
     private var currentMode = Mode.IDLE
@@ -58,15 +63,45 @@ class CanvasInteractionManager(
         canvasCanvas.setOnDragListener { _, event ->
             if (!isEditMode()) return@setOnDragListener false
             when (event.action) {
-                android.view.DragEvent.ACTION_DRAG_ENTERED -> callbacks.onDeleteZoneHover(true) // Reuse for highlight? Or maybe no-op
-                android.view.DragEvent.ACTION_DRAG_ENDED -> callbacks.onDeleteZoneHover(false)
+                android.view.DragEvent.ACTION_DRAG_ENTERED -> {
+                    // Start in IDLE state, will update in LOCATION
+                    isDeleteHovered = false 
+                }
+                android.view.DragEvent.ACTION_DRAG_LOCATION -> {
+                    val y = event.y
+                    val effectiveBottomPadding = canvasCanvas.paddingBottom + bottomInset
+                    // Drop Threshold: Canvas Height - Inset. 
+                    // (Matches "dragging bottom of component" logic if component height ~ offset)
+                    // Simple logic: If cursor is OVER the sheet (or bottom area), trigger delete.
+                    val limitY = (canvasCanvas.height - effectiveBottomPadding).toFloat()
+                    
+                    val inZone = y > limitY
+                    if (inZone != isDeleteHovered) {
+                        isDeleteHovered = inZone
+                        callbacks.onDeleteZoneHover(inZone)
+                    }
+                }
+                android.view.DragEvent.ACTION_DRAG_ENDED -> {
+                    isDeleteHovered = false
+                    callbacks.onDeleteZoneHover(false)
+                }
                 android.view.DragEvent.ACTION_DROP -> {
-                    if (event.clipData != null && event.clipData.itemCount > 0) {
+                    // Check if dropped in Delete Zone
+                    val y = event.y
+                    val effectiveBottomPadding = canvasCanvas.paddingBottom + bottomInset
+                    val limitY = (canvasCanvas.height - effectiveBottomPadding).toFloat()
+                    
+                    if (y > limitY) {
+                         // Dropped in Delete Zone - Cancel Creation
+                         callbacks.onDeleteZoneHover(false)
+                         // Do NOTHING (Deletion)
+                    } else if (event.clipData != null && event.clipData.itemCount > 0) {
                         val type = event.clipData.getItemAt(0).text.toString()
                         callbacks.onNewComponent(type, event.x, event.y)
                     }
                 }
             }
+
             true
         }
     }
@@ -127,7 +162,13 @@ class CanvasInteractionManager(
                     val canvasW = canvasCanvas.width
                     val compH = activeView!!.height
                     val compW = activeView!!.width
-                    val safeLimitY = (canvasH - canvasCanvas.paddingBottom - compH).toFloat()
+                    
+                    // Dynamic Safe Limit:
+                    // Base padding + Dynamic Inset (Bottom Sheet) + Component Height + Buffer (30dp)
+                    // User requested lowering by 60dp (+30) then another 20dp (+40)
+                    // This allows dragging further into the sheet before resistance starts.
+                    val effectiveBottomPadding = canvasCanvas.paddingBottom + bottomInset
+                    val safeLimitY = (canvasH - effectiveBottomPadding - compH + (40 * density)).toFloat()
                     
                     var newY = nominalY
                     
@@ -193,8 +234,16 @@ class CanvasInteractionManager(
                 }
 
                 if (currentMode == Mode.RESIZING && activeView != null) {
-                    var newW = snap(initW + dx.toInt(), resizeStepPx).toInt().coerceAtLeast(gridUnitPx)
-                    var newH = snap(initH + dy.toInt(), resizeStepPx).toInt().coerceAtLeast(gridUnitPx)
+                    val targetWDp = (initW + dx) / density
+                    val targetHDp = (initH + dy) / density
+                    
+                    val stepDp = RESIZE_STEP_DP.toFloat() // 10f
+                    
+                    val newWDp = if (isGridSnapEnabled()) kotlin.math.round(targetWDp / stepDp) * stepDp else kotlin.math.round(targetWDp)
+                    val newHDp = if (isGridSnapEnabled()) kotlin.math.round(targetHDp / stepDp) * stepDp else kotlin.math.round(targetHDp)
+                    
+                    var newW = kotlin.math.round(newWDp * density).toInt().coerceAtLeast(gridUnitPx)
+                    var newH = kotlin.math.round(newHDp * density).toInt().coerceAtLeast(gridUnitPx)
                     
                     val params = activeView!!.layoutParams
                     params.width = newW

@@ -1,0 +1,297 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:dataBindingMergeDependencyArtifactsDebug UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:processDebugNavigationResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:dataBindingGenBaseClassesDebug UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:compileDebugNavigationResources UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+> Task :app:javaPreCompileDebug UP-TO-DATE
+> Task :app:mergeDebugShaders UP-TO-DATE
+> Task :app:compileDebugShaders NO-SOURCE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:mergeDebugAssets UP-TO-DATE
+> Task :app:compressDebugAssets UP-TO-DATE
+> Task :app:checkDebugDuplicateClasses UP-TO-DATE
+> Task :app:desugarDebugFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexDebug UP-TO-DATE
+> Task :app:mergeLibDexDebug UP-TO-DATE
+> Task :app:mergeDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeDebugNativeLibs NO-SOURCE
+> Task :app:stripDebugDebugSymbols NO-SOURCE
+> Task :app:validateSigningDebug UP-TO-DATE
+> Task :app:writeDebugAppMetadata UP-TO-DATE
+> Task :app:writeDebugSigningConfigVersions UP-TO-DATE
+
+> Task :app:compileDebugKotlin FAILED
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:65:13 Argument type mismatch: actual type is 'kotlin.Unit', but 'kotlin.Boolean' was expected.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:81:25 Type mismatch: inferred type is 'kotlin.Unit', but 'kotlin.Boolean' was expected.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:86:21 Type mismatch: inferred type is 'kotlin.Unit', but 'kotlin.Boolean' was expected.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:94:21 Type mismatch: inferred type is 'kotlin.Unit', but 'kotlin.Boolean' was expected.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:96:26 Type mismatch: inferred type is 'kotlin.Unit', but 'kotlin.Boolean' was expected.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:100:25 Type mismatch: inferred type is 'kotlin.Unit', but 'kotlin.Boolean' was expected.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:117:17 Unresolved reference 'downX'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:118:17 Unresolved reference 'downY'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:119:17 Unresolved reference 'isDragDetected'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:123:21 Unresolved reference 'currentMode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:123:35 Unresolved reference 'Mode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:124:21 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:125:21 Unresolved reference 'initW'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:125:29 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:125:42 Unresolved reference 'width'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:126:21 Unresolved reference 'initH'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:126:29 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:126:42 Unresolved reference 'height'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:127:21 Unresolved reference 'canvasCanvas'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:133:21 Unresolved reference 'currentMode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:133:35 Unresolved reference 'Mode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:134:21 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:135:21 Unresolved reference 'initX'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:136:21 Unresolved reference 'initY'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:137:21 Unresolved reference 'canvasCanvas'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:141:17 Unresolved reference 'callbacks'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:142:17 Unresolved reference 'currentMode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:142:31 Unresolved reference 'Mode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:147:33 Unresolved reference 'downX'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:148:33 Unresolved reference 'downY'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:149:22 Unresolved reference 'isDragDetected'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:149:54 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/text/compareTo' in 'compareTo'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:149:56 Unresolved reference 'DRAG_THRESHOLD'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:149:87 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/text/compareTo' in 'compareTo'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:149:89 Unresolved reference 'DRAG_THRESHOLD'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:150:21 Unresolved reference 'isDragDetected'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:153:21 Unresolved reference 'currentMode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:153:36 Unresolved reference 'Mode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:153:53 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:154:37 Unresolved reference 'initX'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:157:38 Unresolved reference 'initY'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:161:35 Unresolved reference 'canvasCanvas'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:162:35 Unresolved reference 'canvasCanvas'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:163:33 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:163:46 Unresolved reference 'height'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:164:33 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:164:46 Unresolved reference 'width'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:170:50 Unresolved reference 'canvasCanvas'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:170:79 Unresolved reference 'bottomInset'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:171:88 Unresolved reference 'density'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:175:34 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/compareTo' in 'compareTo'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:177:48 Overload resolution ambiguity between candidates:
+fun <T> Iterable<T>.minus(element: T): List<T>
+fun <K, V> Map<out K, V>.minus(key: K): Map<K, V>
+fun <T> Set<T>.minus(element: T): Set<T>
+fun <T> Sequence<T>.minus(element: T): Sequence<T>
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:179:54 None of the following candidates is applicable:
+fun BigDecimal.times(other: BigDecimal): BigDecimal
+fun BigInteger.times(other: BigInteger): BigInteger
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:188:45 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/text/compareTo' in 'compareTo'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:188:52 Unresolved reference 'density'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:188:74 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/text/compareTo' in 'compareTo'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:188:99 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/text/compareTo' in 'compareTo'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:189:35 Unresolved reference 'isDeleteHovered'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:190:34 Unresolved reference 'isDeleteHovered'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:191:34 Unresolved reference 'callbacks'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:192:34 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:195:34 Unresolved reference 'isDeleteHovered'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:196:34 Unresolved reference 'isDeleteHovered'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:197:34 Unresolved reference 'callbacks'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:198:34 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:203:30 Unresolved reference 'isDeleteHovered'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:204:30 Unresolved reference 'isDeleteHovered'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:205:30 Unresolved reference 'callbacks'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:206:30 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:212:30 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/compareTo' in 'compareTo'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:213:30 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/text/compareTo' in 'compareTo'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:216:30 'operator' modifier is required on 'FirNamedFunctionSymbol kotlin/compareTo' in 'compareTo'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:218:21 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:218:34 Unresolved reference 'x'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:219:21 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:219:34 Unresolved reference 'y'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:222:34 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:224:39 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:224:52 Unresolved reference 'height'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:224:59 Overload resolution ambiguity between candidates:
+fun String?.plus(other: Any?): String
+fun <T> Array<T>.plus(element: T): Array<T>
+fun ByteArray.plus(element: Byte): ByteArray
+fun IntArray.plus(element: Int): IntArray
+fun LongArray.plus(element: Long): LongArray
+fun ShortArray.plus(element: Short): ShortArray
+fun <T> Collection<T>.plus(element: T): List<T>
+fun <T> Iterable<T>.plus(element: T): List<T>
+fun <T> Set<T>.plus(element: T): Set<T>
+fun <T> Sequence<T>.plus(element: T): Sequence<T>
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:228:26 Unresolved reference 'isDeleteHovered'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:229:40 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:231:25 Unresolved reference 'guideOverlay'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:236:21 Unresolved reference 'currentMode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:236:36 Unresolved reference 'Mode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:236:53 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:237:38 Unresolved reference 'initW'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:237:52 Unresolved reference 'density'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:238:38 Unresolved reference 'initH'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:238:52 Unresolved reference 'density'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:240:34 Unresolved reference 'RESIZE_STEP_DP'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:242:38 Unresolved reference 'isGridSnapEnabled'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:242:87 None of the following candidates is applicable:
+fun BigDecimal.div(other: BigDecimal): BigDecimal
+fun BigInteger.div(other: BigInteger): BigInteger
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:243:38 Unresolved reference 'isGridSnapEnabled'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:243:87 None of the following candidates is applicable:
+fun BigDecimal.div(other: BigDecimal): BigDecimal
+fun BigInteger.div(other: BigInteger): BigInteger
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:245:59 Unresolved reference 'density'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:245:90 Unresolved reference 'gridUnitPx'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:246:59 Unresolved reference 'density'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:246:90 Unresolved reference 'gridUnitPx'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:248:34 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:248:47 Unresolved reference 'layoutParams'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:251:21 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:251:34 Unresolved reference 'layoutParams'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:252:21 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:252:34 Unresolved reference 'requestLayout'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:254:46 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:255:41 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:255:54 Unresolved reference 'y'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:255:63 Overload resolution ambiguity between candidates:
+fun String?.plus(other: Any?): String
+fun <T> Array<T>.plus(element: T): Array<T>
+fun ByteArray.plus(element: Byte): ByteArray
+fun IntArray.plus(element: Int): IntArray
+fun LongArray.plus(element: Long): LongArray
+fun ShortArray.plus(element: Short): ShortArray
+fun <T> Collection<T>.plus(element: T): List<T>
+fun <T> Iterable<T>.plus(element: T): List<T>
+fun <T> Set<T>.plus(element: T): Set<T>
+fun <T> Sequence<T>.plus(element: T): Sequence<T>
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:258:36 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:261:21 Unresolved reference 'callbacks'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:261:51 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:261:64 Unresolved reference 'id'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:267:17 Unresolved reference 'guideOverlay'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:269:21 Unresolved reference 'currentMode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:269:36 Unresolved reference 'Mode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:269:53 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:270:25 Unresolved reference 'isDeleteHovered'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:271:25 Unresolved reference 'callbacks'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:271:54 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:271:67 Unresolved reference 'id'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:272:25 Unresolved reference 'isDeleteHovered'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:273:25 Unresolved reference 'callbacks'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:274:32 Unresolved reference 'isDragDetected'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:275:25 Unresolved reference 'callbacks'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:275:52 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:275:65 Unresolved reference 'id'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:275:69 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:275:82 Unresolved reference 'x'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:275:85 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:275:98 Unresolved reference 'y'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:277:25 Unresolved reference 'callbacks'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:277:54 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:277:67 Unresolved reference 'id'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:279:21 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:280:28 Unresolved reference 'currentMode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:280:43 Unresolved reference 'Mode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:280:60 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:281:26 Unresolved reference 'isDragDetected'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:282:26 Unresolved reference 'callbacks'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:282:55 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:282:68 Unresolved reference 'id'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:282:72 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:282:85 Unresolved reference 'width'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:282:92 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:282:105 Unresolved reference 'height'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:286:17 Unresolved reference 'currentMode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:286:31 Unresolved reference 'Mode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:287:17 Unresolved reference 'activeView'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:288:17 Unresolved reference 'isDeleteHovered'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:296:13 Unresolved reference 'isGridSnapEnabled'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:297:14 Unresolved reference 'guideOverlay'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:316:30 Unresolved reference 'density'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:321:27 Unresolved reference 'canvasCanvas'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:322:25 Unresolved reference 'canvasCanvas'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:341:69 Overload resolution ambiguity between candidates:
+fun <T> Iterable<T>.minus(element: T): List<T>
+fun <K, V> Map<out K, V>.minus(key: K): Map<K, V>
+fun <T> Set<T>.minus(element: T): Set<T>
+fun <T> Sequence<T>.minus(element: T): Sequence<T>
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:342:69 Overload resolution ambiguity between candidates:
+fun <T> Iterable<T>.minus(element: T): List<T>
+fun <K, V> Map<out K, V>.minus(key: K): Map<K, V>
+fun <T> Set<T>.minus(element: T): Set<T>
+fun <T> Sequence<T>.minus(element: T): Sequence<T>
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:345:70 Overload resolution ambiguity between candidates:
+fun <T> Iterable<T>.minus(element: T): List<T>
+fun <K, V> Map<out K, V>.minus(key: K): Map<K, V>
+fun <T> Set<T>.minus(element: T): Set<T>
+fun <T> Sequence<T>.minus(element: T): Sequence<T>
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:346:70 Overload resolution ambiguity between candidates:
+fun <T> Iterable<T>.minus(element: T): List<T>
+fun <K, V> Map<out K, V>.minus(key: K): Map<K, V>
+fun <T> Set<T>.minus(element: T): Set<T>
+fun <T> Sequence<T>.minus(element: T): Sequence<T>
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:356:67 Overload resolution ambiguity between candidates:
+fun <T> Iterable<T>.minus(element: T): List<T>
+fun <K, V> Map<out K, V>.minus(key: K): Map<K, V>
+fun <T> Set<T>.minus(element: T): Set<T>
+fun <T> Sequence<T>.minus(element: T): Sequence<T>
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:357:69 Overload resolution ambiguity between candidates:
+fun <T> Iterable<T>.minus(element: T): List<T>
+fun <K, V> Map<out K, V>.minus(key: K): Map<K, V>
+fun <T> Set<T>.minus(element: T): Set<T>
+fun <T> Sequence<T>.minus(element: T): Sequence<T>
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:360:68 Overload resolution ambiguity between candidates:
+fun <T> Iterable<T>.minus(element: T): List<T>
+fun <K, V> Map<out K, V>.minus(key: K): Map<K, V>
+fun <T> Set<T>.minus(element: T): Set<T>
+fun <T> Sequence<T>.minus(element: T): Sequence<T>
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:361:70 Overload resolution ambiguity between candidates:
+fun <T> Iterable<T>.minus(element: T): List<T>
+fun <K, V> Map<out K, V>.minus(key: K): Map<K, V>
+fun <T> Set<T>.minus(element: T): Set<T>
+fun <T> Sequence<T>.minus(element: T): Sequence<T>
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:392:13 Unresolved reference 'currentMode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:392:28 Unresolved reference 'Mode'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:404:9 Unresolved reference 'guideOverlay'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:422:44 Unresolved reference 'gridUnitPx'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:422:69 Unresolved reference 'isGridSnapEnabled'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:423:42 Unresolved reference 'gridUnitPx'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:426:19 Unresolved reference 'canvasCanvas'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:427:25 Unresolved reference 'canvasCanvas'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:438:19 Unresolved reference 'canvasCanvas'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:439:25 Unresolved reference 'canvasCanvas'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:444:42 Unresolved reference 'visibility'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:445:46 Unresolved reference 'x'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:446:45 Unresolved reference 'y'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:447:55 Unresolved reference 'width'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:447:96 Unresolved reference 'height'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:455:51 Unresolved reference 'canvasCanvas'.
+e: file:///D:/mqttgoogleplaypj/codetest/MqttPanelCraftV2/MqttPanelCraft/app/src/main/java/com/example/mqttpanelcraft/ui/CanvasInteractionManager.kt:456:1 Syntax error: Expecting a top level declaration.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 1s
+30 actionable tasks: 1 executed, 29 up-to-date

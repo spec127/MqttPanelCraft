@@ -16,9 +16,22 @@ class LogAdapter : RecyclerView.Adapter<LogAdapter.LogViewHolder>() {
 
     fun addLog(message: String) {
         val timestamp = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        logs.add(0, "[$timestamp] $message") // Newest first
-        if (logs.size > 100) logs.removeAt(logs.size - 1)
-        notifyItemInserted(0)
+        logs.add("[$timestamp] $message") // Newest Last (Bottom)
+        if (logs.size > 100) logs.removeAt(0) // Remove Oldest (Top)
+        notifyDataSetChanged() // efficient enough for logs, or notifyItemInserted(logs.size-1) + notifyItemRemoved(0)
+    }
+
+    fun setLogs(newLogs: List<String>) {
+        logs.clear()
+        // ViewModel stores Oldest -> Newest.
+        // Adapter displays Oldest -> Newest (Top -> Bottom).
+        logs.addAll(newLogs) 
+        notifyDataSetChanged()
+    }
+    
+    fun getAllLogs(): String {
+        // Return mostly for copy-paste
+        return logs.joinToString("\n")
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LogViewHolder {
@@ -29,6 +42,7 @@ class LogAdapter : RecyclerView.Adapter<LogAdapter.LogViewHolder>() {
     override fun onBindViewHolder(holder: LogViewHolder, position: Int) {
         holder.textView.text = logs[position]
         holder.textView.textSize = 12f
+        holder.textView.setTextColor(android.graphics.Color.DKGRAY) // Better visibility
     }
 
     override fun getItemCount(): Int = logs.size

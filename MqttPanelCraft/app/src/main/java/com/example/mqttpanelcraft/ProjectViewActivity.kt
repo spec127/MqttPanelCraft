@@ -289,15 +289,22 @@ class ProjectViewActivity : AppCompatActivity() {
                     label = label,
                     topicConfig = smartTopic
                 )
-                val newId = viewModel.addComponent(newData)
-                viewModel.selectComponent(newId)
+                val newComp = viewModel.addComponent(newData)
                 
-                // Show Properties Immediately
-                selectedComponentId = newId
-                viewModel.components.value?.let { renderer.render(it, isEditMode, newId) }
-                val view = renderer.getView(newId)
-                if (view != null) {
-                    propertiesManager.showProperties(view, newData)
+                if (newComp != null) {
+                    val newId = newComp.id
+                    viewModel.selectComponent(newId)
+                    
+                    // Show Properties Immediately
+                    selectedComponentId = newId
+                    
+                    // Force Render (Sync)
+                    viewModel.project.value?.components?.let { renderer.render(it, isEditMode, newId) }
+                    
+                    val view = renderer.getView(newId)
+                    if (view != null) {
+                        propertiesManager.showProperties(view, newComp)
+                    }
                 }
             }
         })
@@ -307,18 +314,17 @@ class ProjectViewActivity : AppCompatActivity() {
             isEditMode = { isEditMode },
             isGridEnabled = { viewModel.isGridVisible.value ?: true }
         )
-        
-        // Subscribe to Global Logs
-        // Subscribe to Global Logs
-        // com.example.mqttpanelcraft.utils.DebugLogger.observe { msg ->
-        //    runOnUiThread {
-        //        logConsoleManager.addLog(msg)
-        //    }
-        // }
     }
 
     private fun subscribeToViewModel() {
+        viewModel.logs.observe(this) { logs ->
+             logConsoleManager.updateLogs(logs)
+        }
+
         viewModel.components.observe(this) { components ->
+            // Update Console Topics
+            logConsoleManager.updateTopics(components, viewModel.project.value)
+            
             // RENDER: One-way data flow with Selection State
             renderer.render(components, isEditMode, selectedComponentId)
             
@@ -360,7 +366,7 @@ class ProjectViewActivity : AppCompatActivity() {
              bg?.setColor(color)
              
              // Log Status (User Request)
-             logConsoleManager.addLog("MQTT Status: $status")
+             viewModel.addLog("MQTT Status: $status")
              
              light.setOnClickListener {
                  if (status == ProjectViewModel.MqttStatus.FAILED) {
@@ -452,12 +458,15 @@ class ProjectViewActivity : AppCompatActivity() {
          // Bottom Sheet Callback for Parallax/Push
          val bottomSheet = findViewById<View>(R.id.bottomSheet)
          val sheetBehavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(bottomSheet)
-         sheetBehavior.addBottomSheetCallback(object : com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback() {
-             override fun onStateChanged(bottomSheet: View, newState: Int) {}
-             override fun onSlide(bottomSheet: View, slideOffset: Float) {
-                 updateCanvasOcclusion(bottomSheet)
-             }
-         })
+          sheetBehavior.addBottomSheetCallback(object : com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback() {
+              override fun onStateChanged(bottomSheet: View, newState: Int) {
+                  updateBottomInset(bottomSheet)
+              }
+              override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                  updateCanvasOcclusion(bottomSheet)
+                  updateBottomInset(bottomSheet)
+              }
+          })
     }
 
     private fun updateModeUI() {
@@ -538,25 +547,42 @@ class ProjectViewActivity : AppCompatActivity() {
                     }
                 
                     // 2. Add Component
-                    val newId = viewModel.addComponent(source.copy(
+                    val newComp = viewModel.addComponent(source.copy(
                         x = source.x + 40f, 
                         y = source.y + 40f,
                         label = newLabel
                     )) 
                     
-                    // 3. Selection & Props
-                    viewModel.selectComponent(newId)
-                    selectedComponentId = newId
-                    
-                    // Force prop update
-                    // We need to fetch the NEW component data from VM list (or construct it, but ID is needed)
-                    // Since specific props map is needed, fetching from VM is safer.
-                    // VM might not have updated Livedata specific value immediately in this thread? 
-                    // Usually synchronous if on Main Thread.
-                    val newComp = viewModel.components.value?.find { it.id == newId }
                     if (newComp != null) {
+                         val newId = newComp.id
+
+                        // 3. Selection & Props
+                        viewModel.selectComponent(newId)
+                        selectedComponentId = newId
+                        
+                        // Force prop update: Use the RETURNED object directly!
                         val view = renderer.getView(newId)
-                        if (view != null) propertiesManager.showProperties(view, newComp)
+                        if (view != null) {
+                             propertiesManager.showProperties(view, newComp)
+                        } else {
+                             // Fallback if renderer hasn't updated view cache yet (synchronization)
+                             // Usually renderer updates via Observer.
+                             // Trigger manual render pass if needed?
+                             // Since we mutated the list in VM, the observer WILL fire.
+                             // But if we are here before observer...
+                             // We can't get the VIEW until renderer creates it.
+                             // So we rely on Observer to eventually call render?
+                             // NO. 'showProperties' needs the VIEW immediately for location/highlight.
+                             // If Observer is async, 'getView' returns null.
+                             
+                             // Hack: Force Renderer Update with current (mutated) list from VM
+                             // VM.components.value might be stale, BUT VM.project.value.components IS updated.
+                             viewModel.project.value?.components?.let { 
+                                 renderer.render(it, isEditMode, newId) 
+                                 val freshView = renderer.getView(newId)
+                                 if (freshView != null) propertiesManager.showProperties(freshView, newComp)
+                             }
+                        }
                     }
                 }
             },
@@ -573,6 +599,10 @@ class ProjectViewActivity : AppCompatActivity() {
                 }
             }
         )
+        
+        logConsoleManager.setClearAction {
+            viewModel.clearLogs()
+        }
 
         sidebarManager = SidebarManager(
             drawerLayout, 
@@ -601,7 +631,9 @@ class ProjectViewActivity : AppCompatActivity() {
                      } else {
                          "$topic: $payload"
                      }
-                     logConsoleManager.addLog(logMsg)
+                     
+                     // Send to VM instead of Manager
+                     viewModel.addLog(logMsg)
 
                      // Update UI for all components that match the topic
                      viewModel.components.value?.forEach { comp ->
@@ -630,8 +662,8 @@ class ProjectViewActivity : AppCompatActivity() {
                              putExtra("TOPIC", defaultTopic)
                          }
                          context.startService(intent)
-                         // Log Subscription (User Request)
-                         logConsoleManager.addLog("Auto-Subscribing to: $defaultTopic")
+                         // Log Subscription
+                         viewModel.addLog("Auto-Subscribing to: $defaultTopic")
                          hasSubscribed = true
                      }
                  }
@@ -675,6 +707,25 @@ class ProjectViewActivity : AppCompatActivity() {
         if (targetTrans > 0f) targetTrans = 0f
         
         canvas.translationY = targetTrans
+    }
+
+    private fun updateBottomInset(bottomSheet: View) {
+        // Calculate overlap between BottomSheet and Canvas to adjust Deletion Zone
+        if (bottomSheet.visibility != View.VISIBLE) {
+            interactionManager.updateBottomInset(0)
+            return
+        }
+        val sheetLoc = IntArray(2)
+        bottomSheet.getLocationOnScreen(sheetLoc)
+        val sheetTop = sheetLoc[1]
+        
+        val canvasLoc = IntArray(2)
+        editorCanvas.getLocationOnScreen(canvasLoc)
+        val canvasBottom = canvasLoc[1] + editorCanvas.height
+        
+        // Inset is the amount of canvas covered by the sheet
+        val overlap = (canvasBottom - sheetTop).coerceAtLeast(0)
+        interactionManager.updateBottomInset(overlap)
     }
 
     override fun onPause() {

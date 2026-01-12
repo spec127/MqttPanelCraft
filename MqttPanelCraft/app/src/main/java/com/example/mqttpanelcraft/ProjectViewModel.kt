@@ -173,15 +173,36 @@ class ProjectViewModel(application: Application) : AndroidViewModel(application)
         val newLabel = getNextSmartLabel(type)
         
         // Topic Generation: All Lowercase
+        // Topic Generation: All Lowercase, insert underscore between text and number
         val safeProjName = proj.name.lowercase().replace("/", "_").replace(" ", "_").replace("+", "")
-        val safeItemName = newLabel // newLabel is already lowercase and safe
+        
+        // safeItemName: "button1" -> "button_1"
+        val safeItemName = newLabel.lowercase().replace(Regex("(?<=[a-z])(?=\\d)"), "_")
+        
         // Topic Config: ProjectName/ProjectID/ItemName
         return "$safeProjName/${proj.id}/$safeItemName"
     }
 
-    fun addComponent(type: String, defaultTopic: String): Int {
+    // === Log Persistence ===
+    private val _logs = MutableLiveData<List<String>>(emptyList())
+    val logs: LiveData<List<String>> = _logs
+    private val logBuffer = mutableListOf<String>()
+
+    fun addLog(msg: String) {
+        logBuffer.add(msg)
+        // Optimization: limit size if needed, e.g. 1000 logs
+        if (logBuffer.size > 2000) logBuffer.removeAt(0)
+        _logs.value = logBuffer.toList() // Trigger update
+    }
+    
+    fun clearLogs() {
+        logBuffer.clear()
+        _logs.value = emptyList()
+    }
+
+    fun addComponent(type: String, defaultTopic: String): ComponentData? {
         saveSnapshot()
-        val proj = project.value ?: return -1
+        val proj = project.value ?: return null
         
         // Fix ID Collision: Use Max ID + 1 (System ID)
         val maxId = proj.components.maxOfOrNull { it.id } ?: 100
@@ -192,8 +213,6 @@ class ProjectViewModel(application: Application) : AndroidViewModel(application)
         val smartTopic = generateSmartTopic(type)
 
         // Default Size (Grid Aligned)
-        // Match logic in ComponentFactory
-        // Unit = 10dp (Grid)
         val (wDp, hDp) = when(type) {
             "SLIDER", "THERMOMETER", "TEXT" -> 160 to 100
             "BUTTON", "CAMERA" -> 120 to 60
@@ -215,12 +234,12 @@ class ProjectViewModel(application: Application) : AndroidViewModel(application)
         
         proj.components.add(newComp)
         saveProject() 
-        return newSystemId
+        return newComp
     }
 
-    fun addComponent(component: ComponentData): Int {
+    fun addComponent(component: ComponentData): ComponentData? {
         saveSnapshot()
-        val proj = project.value ?: return -1
+        val proj = project.value ?: return null
         
         var finalComp = component
         // Regen ID if exists
@@ -231,7 +250,7 @@ class ProjectViewModel(application: Application) : AndroidViewModel(application)
         
         proj.components.add(finalComp)
         saveProject()
-        return finalComp.id
+        return finalComp
     }
 
     fun removeComponent(componentId: Int) {

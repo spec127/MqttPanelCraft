@@ -120,7 +120,7 @@
                     android:layout_height="match_parent"
                     android:paddingBottom="50dp"
                     android:clipToPadding="false"
-                    android:background="#121212">
+                    android:background="@color/canvas_background">
                     
                     <!-- Background Pattern -->
                     <com.example.mqttpanelcraft.ui.GridPatternView
@@ -171,7 +171,7 @@
                 android:clickable="true"
                 android:focusable="true"
                 app:layout_behavior="com.example.mqttpanelcraft.ui.LockableBottomSheetBehavior"
-                app:behavior_peekHeight="50dp">
+                app:behavior_peekHeight="85dp">
                 
                 <!-- Wrapper for all content -->
                 <LinearLayout
@@ -185,14 +185,14 @@
                         android:clickable="true"
                         android:focusable="true"
                         android:layout_width="match_parent"
-                        android:layout_height="50dp">
+                        android:layout_height="24dp">
                         
                         <ImageView
                             android:id="@+id/ivHeaderHandle"
                             android:layout_width="40dp"
                             android:layout_height="4dp"
                             android:layout_gravity="center_horizontal"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="4dp"
                             android:src="@drawable/ic_drag_handle" 
                             app:tint="#CCCCCC" />
                             
@@ -229,17 +229,44 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:orientation="vertical"
-                            android:padding="8dp"
+                            android:paddingStart="0dp"
+                            android:paddingEnd="0dp"
+                            android:paddingTop="0dp"
+                            android:paddingBottom="8dp"
                             android:clickable="true"
                             android:focusable="true">
                             
-                            <TextView
-                                android:text="MQTT/System Logs"
-                                android:textStyle="bold"
-                                android:textColor="#666666"
-                                android:padding="8dp"
+                            <LinearLayout
                                 android:layout_width="match_parent"
-                                android:layout_height="wrap_content"/>
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical"
+                                android:paddingStart="24dp"
+                                android:paddingEnd="16dp"
+                                android:paddingTop="4dp"
+                                android:paddingBottom="12dp">
+                                
+                                <TextView
+                                    android:text="MQTT/System Logs"
+                                    android:textStyle="bold"
+                                    android:textSize="18sp"
+                                    android:textColor="#333333"
+                                    android:layout_width="0dp"
+                                    android:layout_weight="1"
+                                    android:layout_height="wrap_content"/>
+                                    
+                                <ImageView
+                                    android:id="@+id/btnLogClear"
+                                    android:layout_width="32dp"
+                                    android:layout_height="32dp"
+                                    android:src="@drawable/ic_broom"
+                                    android:background="?attr/selectableItemBackgroundBorderless"
+                                    android:clickable="true"
+                                    android:focusable="true"
+                                    app:tint="#666666"
+                                    android:padding="4dp"
+                                    android:contentDescription="Clear Logs"/> 
+                            </LinearLayout>
                                 
                             <androidx.recyclerview.widget.RecyclerView
                                 android:id="@+id/rvConsoleLogs"
@@ -252,38 +279,53 @@
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical">
                                 
-                                <LinearLayout
+                                <!-- Row 1: Topic Selector (Publish Target) -->
+                                <com.google.android.material.textfield.TextInputLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:orientation="horizontal">
-                                    <EditText 
-                                        android:id="@+id/etConsoleTopic" 
-                                        android:layout_width="0dp" 
-                                        android:layout_weight="1" 
-                                        android:layout_height="wrap_content" 
-                                        android:hint="Topic"/>
-                                    <Button 
-                                        android:id="@+id/btnConsoleSubscribe" 
-                                        android:layout_width="wrap_content" 
-                                        android:layout_height="wrap_content" 
-                                        android:text="Sub"/>
-                                </LinearLayout>
+                                    android:hint="Topic (Target)"
+                                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense.ExposedDropdownMenu">
+                                    
+                                    <AutoCompleteTextView
+                                        android:id="@+id/etConsoleTopic"
+                                        android:layout_width="match_parent"
+                                        android:layout_height="wrap_content"
+                                        android:textSize="14sp"
+                                        android:inputType="textNoSuggestions"
+                                        android:padding="8dp"/>
+                                </com.google.android.material.textfield.TextInputLayout>
 
+                                <Space android:layout_width="match_parent" android:layout_height="4dp"/>
+
+                                <!-- Row 2: Payload + Send -->
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:orientation="horizontal">
-                                    <EditText 
-                                        android:id="@+id/etConsolePayload" 
-                                        android:layout_width="0dp" 
-                                        android:layout_weight="1" 
-                                        android:layout_height="wrap_content" 
-                                        android:hint="Payload"/>
+                                    android:orientation="horizontal"
+                                    android:gravity="center_vertical">
+                                    
+                                    <com.google.android.material.textfield.TextInputLayout
+                                        android:layout_width="0dp"
+                                        android:layout_weight="1"
+                                        android:layout_height="wrap_content"
+                                        android:hint="Payload"
+                                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+                                        <com.google.android.material.textfield.TextInputEditText
+                                            android:id="@+id/etConsolePayload"
+                                            android:layout_width="match_parent"
+                                            android:layout_height="wrap_content"
+                                            android:textSize="14sp"
+                                            android:padding="8dp"/>
+                                    </com.google.android.material.textfield.TextInputLayout>
+
                                     <Button 
                                         android:id="@+id/btnConsoleSend" 
                                         android:layout_width="wrap_content" 
                                         android:layout_height="wrap_content" 
-                                        android:text="Send"/>
+                                        android:text="Send"
+                                        android:layout_marginStart="8dp"
+                                        style="@style/Widget.MaterialComponents.Button.TextButton"/> 
+                                        <!-- Using compact button style or default -->
                                 </LinearLayout>
                             </LinearLayout>
                         </LinearLayout>
@@ -294,24 +336,40 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:visibility="gone"
-                            android:padding="8dp"
+                            android:paddingStart="0dp"
+                            android:paddingEnd="0dp"
+                            android:paddingTop="0dp"
+                            android:paddingBottom="8dp"
                             android:orientation="vertical">
                             
                             <!-- Header -->
-                            <TextView 
-                                android:text="Properties" 
-                                android:textSize="14sp" 
-                                android:textStyle="bold" 
-                                android:textColor="#666666"
-                                android:layout_marginBottom="8dp"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"/>
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical"
+                                android:paddingStart="24dp"
+                                android:paddingEnd="16dp"
+                                android:paddingTop="4dp"
+                                android:paddingBottom="12dp">
+                                
+                                <TextView 
+                                    android:text="Properties" 
+                                    android:textSize="21sp" 
+                                    android:textStyle="bold" 
+                                    android:textColor="#333333"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"/>
+                            </LinearLayout>
                                 
                             <!-- Display Name -->
                             <TextView
                                 android:text="Display Name"
                                 android:textSize="12sp"
                                 android:textColor="#666666"
+                                android:layout_marginTop="12dp"
+                                android:paddingStart="24dp"
+                                android:paddingEnd="16dp"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"/>
                                 

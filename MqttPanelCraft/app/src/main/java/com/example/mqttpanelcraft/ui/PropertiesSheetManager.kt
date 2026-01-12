@@ -115,8 +115,8 @@ class PropertiesSheetManager(
         if (isBinding) return
         isBinding = true
         val density = propertyContainer.resources.displayMetrics.density
-        val wDp = (wPx / density).toInt()
-        val hDp = (hPx / density).toInt()
+        val wDp = kotlin.math.round(wPx / density).toInt()
+        val hDp = kotlin.math.round(hPx / density).toInt()
         
         etPropWidth?.setText(wDp.toString())
         etPropHeight?.setText(hDp.toString())
@@ -211,8 +211,8 @@ class PropertiesSheetManager(
             
             // Dimensions
             val density = propertyContainer.resources.displayMetrics.density
-            val wDp = (view.width / density).toInt()
-            val hDp = (view.height / density).toInt()
+            val wDp = kotlin.math.round(view.width / density).toInt()
+            val hDp = kotlin.math.round(view.height / density).toInt()
             etPropWidth?.setText(wDp.toString())
             etPropHeight?.setText(hDp.toString())
             

@@ -20,4 +20,5 @@
     <color name="sidebar_component_stroke">#999999</color>
     <color name="sidebar_section_header">#666666</color>
     <color name="grid_dot_color">#E0E0E0</color>
+    <color name="canvas_background">#FFFFFF</color>
 </resources>
