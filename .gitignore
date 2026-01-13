@@ -34,3 +34,19 @@ google-services.json
 *.hprof
 
 .vscode/
+# === Local build/debug logs (do not commit) ===
+MqttPanelCraft/build_*.txt
+MqttPanelCraft/build_log*.txt
+MqttPanelCraft/errors*.txt
+MqttPanelCraft/*verification*.txt
+MqttPanelCraft/*.log
+
+# === Gradle / build outputs ===
+**/.gradle/
+**/.kotlin/
+**/build/
+
+# === Android Studio / IntelliJ ===
+.idea/
+*.iml
+local.properties
