@@ -101,12 +101,41 @@ class SidebarManager(
              false
         }
 
-        categories.forEach { (id, tag) ->
-            rootView.findViewById<View>(id)?.apply {
-                this.tag = tag
-                setOnTouchListener(touchListener)
-            }
+        val cards = categories.mapNotNull { (id, tag) ->
+            val card = rootView.findViewById<View>(id)
+            card?.tag = tag
+            card?.setOnTouchListener(touchListener)
+            if (card != null) card to tag else null
         }
+
+        // Search Logic
+        val etSearch = rootView.findViewById<android.widget.EditText>(R.id.etSearchComponents)
+        etSearch?.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s.toString().trim().lowercase()
+                cards.forEach { (view, tag) ->
+                    // Search by Tag (e.g. "BUTTON") or visible name guessing
+                    // Mapping specific search aliases could be better, but Tag is close enought usually.
+                    // THERMOMETER -> "Level Indicator" in XML. 
+                    val searchable = when(tag) {
+                         "THERMOMETER" -> "level indicator thermometer"
+                         else -> tag.lowercase()
+                    }
+                    
+                    if (query.isEmpty() || searchable.contains(query)) {
+                        view.visibility = View.VISIBLE
+                        // Restore layout params if needed? (weight might be affected if we use GONE)
+                        // If we use GONE, the other item in row expands.
+                        // If we use INVISIBLE, space is kept.
+                        // User likely wants GONE to filter list.
+                    } else {
+                        view.visibility = View.GONE
+                    }
+                }
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
     }
     
     fun setupRunModeSettings(rootView: View, activity: android.app.Activity) {
@@ -114,38 +143,73 @@ class SidebarManager(
 
         // Orientation Control
         val switchPortrait = rootView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchLockPortrait)
-        val switchLandscape = rootView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchLockLandscape)
+        val switchLandscapeLeft = rootView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchLockLandscape)
+        val switchLandscapeRight = rootView.findViewById<com.google.android.material.switchmaterial.SwitchMaterial>(R.id.switchLockLandscapeReverse)
 
-        if (switchPortrait != null && switchLandscape != null) {
+        if (switchPortrait != null && switchLandscapeLeft != null && switchLandscapeRight != null) {
             val isPortraitLocked = prefs.getBoolean("lock_portrait", false)
-            val isLandscapeLocked = prefs.getBoolean("lock_landscape", false)
+            val isLandscapeLeftLocked = prefs.getBoolean("lock_landscape_left", false)
+            val isLandscapeRightLocked = prefs.getBoolean("lock_landscape_right", false)
 
             switchPortrait.isChecked = isPortraitLocked
-            switchLandscape.isChecked = isLandscapeLocked
+            switchLandscapeLeft.isChecked = isLandscapeLeftLocked
+            switchLandscapeRight.isChecked = isLandscapeRightLocked
 
             // Apply initial state
             if (isPortraitLocked) activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            else if (isLandscapeLocked) activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-            else activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+            else if (isLandscapeLeftLocked) activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            else if (isLandscapeRightLocked) activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+            var isUpdating = false
 
-            switchPortrait.setOnCheckedChangeListener { _, isChecked ->
-                if (isChecked) {
-                    switchLandscape.isChecked = false
-                    activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                } else {
-                    if (!switchLandscape.isChecked) activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                }
-                prefs.edit().putBoolean("lock_portrait", isChecked).apply()
+            // Helper to update state safely
+            fun updateSwitches(portrait: Boolean, left: Boolean, right: Boolean) {
+                if (isUpdating) return
+                isUpdating = true
+                switchPortrait.isChecked = portrait
+                switchLandscapeLeft.isChecked = left
+                switchLandscapeRight.isChecked = right
+                isUpdating = false
+                
+                // Save State
+                prefs.edit()
+                    .putBoolean("lock_portrait", portrait)
+                    .putBoolean("lock_landscape_left", left)
+                    .putBoolean("lock_landscape_right", right)
+                    .apply()
+                
+                // Apply Orientation
+                if (portrait) activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                else if (left) activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                else if (right) activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
+                else activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
             }
 
-            switchLandscape.setOnCheckedChangeListener { _, isChecked ->
-                if (isChecked) {
-                    switchPortrait.isChecked = false
-                    activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                } else {
-                    if (!switchPortrait.isChecked) activity.requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
-                }
-                prefs.edit().putBoolean("lock_landscape", isChecked).apply()
+            switchPortrait.setOnCheckedChangeListener { _, isChecked ->
+                 if (isUpdating) return@setOnCheckedChangeListener
+                 if (isChecked) {
+                     updateSwitches(portrait = true, left = false, right = false)
+                 } else {
+                     // If turning off, and others are off, go to Unspecified
+                     updateSwitches(portrait = false, left = false, right = false)
+                 }
+            }
+
+            switchLandscapeLeft.setOnCheckedChangeListener { _, isChecked ->
+                 if (isUpdating) return@setOnCheckedChangeListener
+                 if (isChecked) {
+                     updateSwitches(portrait = false, left = true, right = false)
+                 } else {
+                     updateSwitches(portrait = false, left = false, right = false)
+                 }
+            }
+            
+            switchLandscapeRight.setOnCheckedChangeListener { _, isChecked ->
+                 if (isUpdating) return@setOnCheckedChangeListener
+                 if (isChecked) {
+                     updateSwitches(portrait = false, left = false, right = true)
+                 } else {
+                     updateSwitches(portrait = false, left = false, right = false)
+                 }
             }
         }
     }

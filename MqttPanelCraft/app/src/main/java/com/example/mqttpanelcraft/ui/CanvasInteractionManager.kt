@@ -51,12 +51,14 @@ class CanvasInteractionManager(
     private var isDragDetected = false
 
     private var isGridSnapEnabled: () -> Boolean = { true }
+    private var isEditMode: () -> Boolean = { false }
 
     fun setup(isEditMode: () -> Boolean, isGridEnabled: () -> Boolean) {
         this.isGridSnapEnabled = isGridEnabled
+        this.isEditMode = isEditMode
         
         canvasCanvas.setOnTouchListener { _, event ->
-            if (!isEditMode()) return@setOnTouchListener false
+            // Allow events in Run Mode (for background clicks), filter inside handleTouch
             handleTouch(event)
         }
 
@@ -118,24 +120,27 @@ class CanvasInteractionManager(
                 downY = rawY
                 isDragDetected = false
                 
-                val handle = findResizeHandleAt(x, y)
-                if (handle != null) {
-                    currentMode = Mode.RESIZING
-                    activeView = handle 
-                    initW = activeView!!.width
-                    initH = activeView!!.height
-                    canvasCanvas.requestDisallowInterceptTouchEvent(true)
-                    return true
-                }
-
-                val component = findComponentAt(x, y)
-                if (component != null) {
-                    currentMode = Mode.DRAGGING
-                    activeView = component
-                    initX = component.x
-                    initY = component.y
-                    canvasCanvas.requestDisallowInterceptTouchEvent(true)
-                    return true
+                // Only allow Drag/Resize in Edit Mode
+                if (isEditMode()) {
+                    val handle = findResizeHandleAt(x, y)
+                    if (handle != null) {
+                        currentMode = Mode.RESIZING
+                        activeView = handle 
+                        initW = activeView!!.width
+                        initH = activeView!!.height
+                        canvasCanvas.requestDisallowInterceptTouchEvent(true)
+                        return true
+                    }
+    
+                    val component = findComponentAt(x, y)
+                    if (component != null) {
+                        currentMode = Mode.DRAGGING
+                        activeView = component
+                        initX = component.x
+                        initY = component.y
+                        canvasCanvas.requestDisallowInterceptTouchEvent(true)
+                        return true
+                    }
                 }
 
                 callbacks.onComponentClicked(-1) 

@@ -37,6 +37,9 @@ class ProjectViewActivity : AppCompatActivity() {
     private lateinit var sidebarManager: SidebarManager
     private lateinit var propertiesManager: PropertiesSheetManager
     private lateinit var logConsoleManager: LogConsoleManager
+    private lateinit var idleAdController: com.example.mqttpanelcraft.ui.IdleAdController
+    
+    // Others
 
     private var selectedComponentId: Int? = null
     private var isEditMode = false
@@ -98,6 +101,9 @@ class ProjectViewActivity : AppCompatActivity() {
             }
             
             updateModeUI()
+            
+            // vKeepScreenOn: Prevent auto-lock while in this activity
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         } catch (e: Exception) {
             e.printStackTrace()
@@ -147,6 +153,16 @@ class ProjectViewActivity : AppCompatActivity() {
                     viewModel.components.value?.let { renderer.render(it, isEditMode, selectedComponentId) }
                     
                     updateCanvasOcclusion()
+                } else {
+                    // RUN MODE
+                    if (id == -1) {
+                         // Background Click -> Collapse Log Console (if expanded)
+                         val sheet = findViewById<View>(R.id.bottomSheet)
+                         val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(sheet)
+                         if (behavior.state == com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED) {
+                             behavior.state = com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED
+                         }
+                    }
                 } 
             }
 
@@ -447,6 +463,9 @@ class ProjectViewActivity : AppCompatActivity() {
 
          fabMode.setOnClickListener {
              isEditMode = !isEditMode
+             
+             // Idle Ad: Runs in both modes, do not stop here.
+             
              selectedComponentId = null // Clear selection on mode switch
              updateModeUI()
              // Trigger re-render
@@ -605,13 +624,28 @@ class ProjectViewActivity : AppCompatActivity() {
         }
 
         sidebarManager = SidebarManager(
-            drawerLayout, 
-            null, 
+            drawerLayout,
+            null,
             findViewById(R.id.sidebarEditMode),
             findViewById(R.id.sidebarRunMode),
             { _,_ -> }
         )
         sidebarManager.setupComponentPalette(drawerLayout)
+        sidebarManager.setupRunModeSettings(findViewById(R.id.sidebarRunMode), this)
+        
+        sidebarManager.setupRunModeSettings(findViewById(R.id.sidebarRunMode), this)
+        
+        // Ensure AdManager is ready and pre-load Interstitial
+        com.example.mqttpanelcraft.utils.AdManager.initialize(this)
+        com.example.mqttpanelcraft.utils.AdManager.loadInterstitial(this)
+        
+        // Idle Ad Controller
+        idleAdController = com.example.mqttpanelcraft.ui.IdleAdController(this) {
+             // Ad Closed
+             if (isEditMode) {
+                 // Resume behavior if needed
+             }
+        }
     }
 
     private fun subscribeToMqtt() {
@@ -728,7 +762,25 @@ class ProjectViewActivity : AppCompatActivity() {
         interactionManager.updateBottomInset(overlap)
     }
 
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent?): Boolean {
+        if (::idleAdController.isInitialized) {
+            idleAdController.onUserInteraction()
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::idleAdController.isInitialized) {
+             idleAdController.start()
+        }
+        updateModeUI() // Ensure UI state is consistent
+    }
+
     override fun onPause() {
+        if (::idleAdController.isInitialized) {
+            idleAdController.stop()
+        }
         super.onPause()
         val prefs = getSharedPreferences("ProjectPrefs", MODE_PRIVATE)
         with(prefs.edit()) {

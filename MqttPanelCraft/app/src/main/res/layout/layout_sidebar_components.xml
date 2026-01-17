@@ -64,8 +64,7 @@
                 <!-- Text Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardText"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="120dp"
                     android:layout_height="80dp"
                     android:layout_marginEnd="4dp"
                     app:cardCornerRadius="8dp"
@@ -98,8 +97,7 @@
                 <!-- Image Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardImage"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="120dp"
                     android:layout_height="80dp"
                     android:layout_marginStart="4dp"
                     app:cardCornerRadius="8dp"
@@ -149,8 +147,7 @@
                 <!-- Button Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardButton"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="120dp"
                     android:layout_height="80dp"
                     android:layout_marginEnd="4dp"
                     app:cardCornerRadius="8dp"
@@ -182,8 +179,7 @@
                 <!-- Slider Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardSlider"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="120dp"
                     android:layout_height="80dp"
                     android:layout_marginStart="4dp"
                     app:cardCornerRadius="8dp"
@@ -222,8 +218,7 @@
                 <!-- Camera Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardCamera"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="120dp"
                     android:layout_height="80dp"
                     android:layout_marginEnd="4dp"
                     app:cardCornerRadius="8dp"
@@ -252,12 +247,7 @@
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
                 
-                 <!-- Spacer for grid alignment -->
-                 <View
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:layout_height="80dp"
-                    android:layout_marginStart="4dp"/>
+                 <!-- Spacer removed -->
             </LinearLayout>
 
 
@@ -280,8 +270,7 @@
                 <!-- LED Card -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardLed"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="120dp"
                     android:layout_height="80dp"
                     android:layout_marginEnd="4dp"
                     app:cardCornerRadius="8dp"
@@ -313,8 +302,7 @@
                 <!-- Thermometer Card -> LEVEL INDICATOR -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cardThermometer"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
+                    android:layout_width="120dp"
                     android:layout_height="80dp"
                     android:layout_marginStart="4dp"
                     app:cardCornerRadius="8dp"
