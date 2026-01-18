@@ -328,7 +328,12 @@ class ProjectViewActivity : AppCompatActivity() {
         
         interactionManager.setup(
             isEditMode = { isEditMode },
-            isGridEnabled = { viewModel.isGridVisible.value ?: true }
+            isGridEnabled = { viewModel.isGridVisible.value ?: true },
+            isBottomSheetExpanded = {
+                val sheet = findViewById<View>(R.id.bottomSheet)
+                val behavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(sheet)
+                behavior.state == com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED
+            }
         )
     }
 
