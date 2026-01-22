@@ -14,6 +14,9 @@ import com.example.mqttpanelcraft.model.ProjectType
 import com.example.mqttpanelcraft.ui.*
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import androidx.appcompat.app.AlertDialog
+import android.graphics.Rect
+import android.view.MotionEvent
+import android.view.inputmethod.InputMethodManager
 import java.util.Locale
 
 class ProjectViewActivity : AppCompatActivity() {
@@ -774,7 +777,19 @@ class ProjectViewActivity : AppCompatActivity() {
         interactionManager.updateBottomInset(overlap)
     }
 
-    override fun dispatchTouchEvent(ev: android.view.MotionEvent?): Boolean {
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        if (ev?.action == MotionEvent.ACTION_DOWN) {
+            val v = currentFocus
+            if (v is EditText) {
+                val outRect = Rect()
+                v.getGlobalVisibleRect(outRect)
+                if (!outRect.contains(ev.rawX.toInt(), ev.rawY.toInt())) {
+                    v.clearFocus()
+                    val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.hideSoftInputFromWindow(v.windowToken, 0)
+                }
+            }
+        }
         if (::idleAdController.isInitialized) {
             idleAdController.onUserInteraction()
         }
