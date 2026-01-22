@@ -25,10 +25,17 @@ object ButtonDefinition : IComponentDefinition {
     override fun createView(context: Context, isEditMode: Boolean): View {
         val container = ComponentContainer.createEndpoint(context, type, isEditMode)
         
-        val button = Button(context).apply { 
+        val button = androidx.appcompat.widget.AppCompatButton(context).apply { 
             text = "BTN"
-            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT).apply {
+            // Flat Design: No Shadow
+            stateListAnimator = null
+            elevation = 0f
+            textSize = 14f
+            isAllCaps = false
+            
+            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT).apply {
                 gravity = Gravity.CENTER
+                setMargins(8, 8, 8, 8)
             }
         }
         // Add content at index 0 (behind handle)
@@ -41,50 +48,88 @@ object ButtonDefinition : IComponentDefinition {
         val container = view as? FrameLayout ?: return
         val button = findButtonIn(container) ?: return
         
-        data.props["color"]?.let { colorCode ->
-             try {
-                 val color = android.graphics.Color.parseColor(colorCode)
-                 button.setBackgroundColor(color)
-             } catch(_: Exception) {}
+        // 1. Color (Background)
+        val colorHex = data.props["color"] ?: "#6200EE" // Default Purple
+        val color = try {
+            android.graphics.Color.parseColor(colorHex)
+        } catch(e: Exception) {
+            android.graphics.Color.LTGRAY
         }
-    }
-
-    // 3. Properties (Binder)
-    override val propertiesLayoutId = R.layout.layout_props_button
-
-    override fun bindPropertiesPanel(panelView: View, data: ComponentData, onUpdate: (String, String) -> Unit) {
-        val etPayload = panelView.findViewById<EditText>(R.id.etPayload) ?: return
         
-        // Initial Value
-        val currentPayload = data.props["payload"] ?: "1" // Default payload
-        if (etPayload.text.toString() != currentPayload) {
-            etPayload.setText(currentPayload)
+        // Create Drawable for Circular Design
+        val bgDrawable = android.graphics.drawable.GradientDrawable().apply {
+             shape = android.graphics.drawable.GradientDrawable.OVAL
+             setColor(color)
         }
-
-        // Listener (Remove old one if needed? Normally Binder is fresh)
-        // With simple implementation we just add listener.
-        etPayload.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                onUpdate("payload", s.toString())
+        button.background = bgDrawable
+        
+        // 2. Text (Label)
+        val btnText = data.props["text"] ?: data.label
+        button.text = btnText
+        // Auto-contrast text color
+        if (androidx.core.graphics.ColorUtils.calculateLuminance(color) > 0.5) {
+            button.setTextColor(android.graphics.Color.BLACK)
+            button.compoundDrawableTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.BLACK)
+        } else {
+            button.setTextColor(android.graphics.Color.WHITE)
+            button.compoundDrawableTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.WHITE)
+        }
+        
+        // 3. Icon
+        val iconKey = data.props["icon"]
+        val iconRes = when(iconKey) {
+            "plus" -> android.R.drawable.ic_input_add
+            "delete" -> android.R.drawable.ic_delete
+            "send" -> android.R.drawable.ic_menu_send
+            "edit" -> android.R.drawable.ic_menu_edit
+            "info" -> android.R.drawable.ic_dialog_info
+            "mic" -> android.R.drawable.btn_star 
+            else -> 0
+        }
+        
+        // Set Icon (Left)
+        if (iconRes != 0) {
+            val d = androidx.core.content.ContextCompat.getDrawable(button.context, iconRes)
+            button.setCompoundDrawablesWithIntrinsicBounds(d, null, null, null)
+            button.compoundDrawablePadding = 8
+        } else {
+            button.setCompoundDrawablesWithIntrinsicBounds(null, null, null, null)
+        }
+        
+        // 4. Pressed State (Simple Darken)
+        button.setOnTouchListener { v, event ->
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    // Darken
+                    val hsv = FloatArray(3)
+                    android.graphics.Color.colorToHSV(color, hsv)
+                    hsv[2] *= 0.8f // Darken value
+                    val darkColor = android.graphics.Color.HSVToColor(hsv)
+                    (v.background as? android.graphics.drawable.GradientDrawable)?.setColor(darkColor)
+                }
+                android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                    // Restore
+                    (v.background as? android.graphics.drawable.GradientDrawable)?.setColor(color)
+                    // If UP, perform click handled by click listener
+                }
             }
-        })
+            false // Process click
+        }
     }
+
+    // 3. Properties (Binder) - Deprecated, logic moved to PropertiesSheetManager
+    override val propertiesLayoutId = 0
+    override fun bindPropertiesPanel(panelView: View, data: ComponentData, onUpdate: (String, String) -> Unit) {}
 
     // 4. Runtime Behavior
     override fun attachBehavior(view: View, data: ComponentData, sendMqtt: (topic: String, payload: String) -> Unit) {
         val container = view as? FrameLayout ?: return
         val button = findButtonIn(container) ?: return
         
-        // Update Appearance based on Data (if needed)
-        // e.g. Label on button? 
-        // button.text = data.label 
-        
+        // Ensure onClick fires (setOnTouchListener returns false, so onClick works)
         button.setOnClickListener {
              // Logic
              val topic = data.topicConfig
-             // Allow user to set empty topic? Maybe check
              if (topic.isNotEmpty()) {
                  val payload = data.props["payload"] ?: "1"
                  sendMqtt(topic, payload)
@@ -92,15 +137,15 @@ object ButtonDefinition : IComponentDefinition {
         }
     }
 
-    override fun onMqttMessage(view: View, data: ComponentData, payload: String) {
-        // Button usually doesn't react to messages, but could change color?
-        // For now, no-op
-    }
+    override fun onMqttMessage(view: View, data: ComponentData, payload: String) {}
 
-    private fun findButtonIn(container: FrameLayout): Button? {
+    private fun findButtonIn(container: FrameLayout): androidx.appcompat.widget.AppCompatButton? {
         for (i in 0 until container.childCount) {
              val child = container.getChildAt(i)
-             if (child is Button) return child
+             if (child is androidx.appcompat.widget.AppCompatButton) return child
+             // Fallback for old buttons if mismatch? Recreate in factory if type changes.
+             // But for now, we assume fresh creation or compatible.
+             if (child is Button) return child as? androidx.appcompat.widget.AppCompatButton
         }
         return null
     }

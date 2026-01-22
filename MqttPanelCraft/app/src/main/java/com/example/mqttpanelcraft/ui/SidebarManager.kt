@@ -85,6 +85,23 @@ class SidebarManager(
 
                  // Create temp preview for shadow
                  val previewView = def?.createView(checkContext, true) ?: View(checkContext)
+                 
+                 // FIX: Apply default styles (Shape, Color, etc.) via onUpdateView
+                 if (def != null) {
+                     val dummyData = com.example.mqttpanelcraft.model.ComponentData(
+                         id = -1,
+                         type = tag,
+                         x = 0f,
+                         y = 0f,
+                         width = w,
+                         height = h,
+                         label = def.labelPrefix,
+                         topicConfig = "",
+                         props = mutableMapOf()
+                     )
+                     def.onUpdateView(previewView, dummyData)
+                 }
+
                  val widthSpec = View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY)
                  val heightSpec = View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY)
                  previewView.measure(widthSpec, heightSpec)

@@ -35,6 +35,9 @@ class PropertiesSheetManager(
     private var isBinding = false
     private var selectedViewId: Int = View.NO_ID
     private var currentData: ComponentData? = null
+    // Auto-restore logic
+    private var lastComponentData: ComponentData? = null
+    private var lastViewId: Int = View.NO_ID
     
     // Registry (Legacy binders removed)
     // private val binders = mapOf<String, IComponentPropertyBinder>(...)
@@ -60,6 +63,14 @@ class PropertiesSheetManager(
     
     // Specific Props
     private val containerSpecificProps: LinearLayout? = propertyContainer.findViewById(R.id.containerSpecificProps)
+    
+    // NEW: Button Specific Props
+    private val containerButtonProps: View? = propertyContainer.findViewById(R.id.containerButtonProps)
+    private val etPropPayload: EditText? = propertyContainer.findViewById(R.id.etPropPayload)
+    private val etPropButtonText: EditText? = propertyContainer.findViewById(R.id.etPropButtonText)
+    private val ivPropIconPreview: ImageView? = propertyContainer.findViewById(R.id.ivPropIconPreview)
+    private val btnSelectIcon: View? = propertyContainer.findViewById(R.id.btnSelectIcon)
+    private val btnClearIcon: View? = propertyContainer.findViewById(R.id.btnClearIcon)
 
     init {
         setupListeners()
@@ -98,7 +109,32 @@ class PropertiesSheetManager(
              Toast.makeText(propertyContainer.context, "Topic Copied", Toast.LENGTH_SHORT).show()
         }
         
-        vPropColorPreview?.setOnClickListener { showColorPickerPopup() }
+        vPropColorPreview?.setOnClickListener {
+            val currentColor = vPropColorPreview?.text.toString()
+            val initialColor = if (currentColor == "Default") "#FFFFFFFF" else currentColor
+            
+            ColorPickerDialog(
+                context = propertyContainer.context,
+                initialColor = initialColor,
+                showAlpha = true
+            ) { selectedHex ->
+                updateColorPreview(selectedHex)
+                saveCurrentProps()
+            }.show(vPropColorPreview!!)
+        }
+        
+        // Button Props Listeners
+        etPropPayload?.addTextChangedListener(textWatcher)
+        etPropButtonText?.addTextChangedListener(textWatcher)
+        
+        btnSelectIcon?.setOnClickListener {
+            showIconSelector(btnSelectIcon)
+        }
+        
+        btnClearIcon?.setOnClickListener {
+            updateIconPreview(null)
+            saveCurrentProps()
+        }
     }
     
     private fun getFullTopic(): String {
@@ -164,6 +200,21 @@ class PropertiesSheetManager(
                      updated.props.remove("color")
                 }
                 
+                // Save Button Props
+                if (currentData?.type == "BUTTON") {
+                    val payload = etPropPayload?.text.toString()
+                    val btnText = etPropButtonText?.text.toString()
+                    val iconKey = ivPropIconPreview?.tag as? String ?: ""
+                    
+                    updated.props["payload"] = payload
+                    updated.props["text"] = btnText
+                    if (iconKey.isNotEmpty()) {
+                        updated.props["icon"] = iconKey
+                    } else {
+                        updated.props.remove("icon")
+                    }
+                }
+                
                 // Specific properties are updated via callback in Binder, but they might need to be merged?
                 // Actually binder updates `data.props` directly in my implementation of Binder?
                 // ButtonPropertyBinder calls `onUpdate(key, value)`.
@@ -197,6 +248,8 @@ class PropertiesSheetManager(
     fun showProperties(view: View, data: ComponentData) {
         selectedViewId = view.id
         currentData = data
+        lastViewId = view.id
+        lastComponentData = data
         isBinding = true
         
         try {
@@ -237,6 +290,25 @@ class PropertiesSheetManager(
             if (data.props.containsKey("color")) {
                 colorHex = data.props["color"] ?: ""
             }
+            
+            updateColorPreview(colorHex)
+            
+            // Button Specific Visibility & Binding
+            if (data.type == "BUTTON") {
+                containerButtonProps?.visibility = View.VISIBLE
+                
+                val payload = data.props["payload"] ?: "1"
+                val btnText = data.props["text"] ?: ""
+                val iconKey = data.props["icon"]
+                
+                etPropPayload?.setText(payload)
+                etPropButtonText?.setText(btnText)
+                updateIconPreview(iconKey)
+                
+            } else {
+                containerButtonProps?.visibility = View.GONE
+            }
+
             
             // If empty, we show "Default" in UI, but don't set text to #FFFFFF
             // updateColorPreview handles empty string now
@@ -319,7 +391,25 @@ class PropertiesSheetManager(
         // Helper to find BS and hide it
         findBottomSheetBehavior()?.state = BottomSheetBehavior.STATE_HIDDEN
         currentData = null
+        // Note: We keep lastComponentData for restore logic
     }
+    
+    fun getLastSelectedId(): Int? = if (lastComponentData != null && lastViewId != View.NO_ID) lastViewId else null
+    
+    fun restoreLastState(): Boolean {
+        // We prefer external restoration via ViewModel, so this might be redundant if used with Activity logic,
+        // but keeping it for manual internal restore if needed.
+        if (lastComponentData != null && lastViewId != View.NO_ID) {
+            val view = propertyContainer.rootView.findViewById<View>(lastViewId)
+            if (view != null) {
+                showProperties(view, lastComponentData!!)
+                return true
+            }
+        }
+        return false
+    }
+    
+    fun hasLastState(): Boolean = lastComponentData != null
     
     private fun forceExpandBottomSheet() {
         val behavior = findBottomSheetBehavior() ?: return
@@ -343,228 +433,41 @@ class PropertiesSheetManager(
         return null
     }
 
-    // === Color Picker (Popup) ===
-    private fun showColorPickerPopup() {
-        val context = propertyContainer.context
-        val density = context.resources.displayMetrics.density
-        
-        // Helper for Border
-        fun createBorderDrawable(): android.graphics.drawable.Drawable {
-            val gd = GradientDrawable()
-            gd.setColor(Color.WHITE)
-            gd.setStroke((1 * density).toInt(), Color.LTGRAY)
-            gd.cornerRadius = 4 * density
-            return gd
+    // === Color Picker 已移至 ColorPickerDialog.kt ===
+    
+    private fun updateIconPreview(iconKey: String?) {
+        if (iconKey.isNullOrEmpty()) {
+            ivPropIconPreview?.setImageDrawable(null)
+            ivPropIconPreview?.tag = null
+            btnClearIcon?.visibility = View.GONE
+        } else {
+            // Map keys to drawables (Simple map for now)
+            val resId = getDrawableIdFromKey(iconKey)
+            ivPropIconPreview?.setImageResource(resId)
+            ivPropIconPreview?.tag = iconKey
+            btnClearIcon?.visibility = View.VISIBLE
         }
-        
-        // Root: Vertical
-        val popupRoot = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding((8 * density).toInt(), (8 * density).toInt(), (8 * density).toInt(), (8 * density).toInt())
-            setBackgroundColor(Color.WHITE)
-            background = GradientDrawable().apply {
-                 setColor(Color.WHITE)
-                 cornerRadius = 8 * density
-                 setStroke((1 * density).toInt(), Color.GRAY)
-            }
-            elevation = 20f
+    }
+    
+    private fun getDrawableIdFromKey(key: String): Int {
+        return when(key) {
+            "plus" -> android.R.drawable.ic_input_add
+            "delete" -> android.R.drawable.ic_delete
+            "send" -> android.R.drawable.ic_menu_send
+            "edit" -> android.R.drawable.ic_menu_edit
+            "info" -> android.R.drawable.ic_dialog_info
+            "mic" -> android.R.drawable.btn_star // Placeholder for mic
+            else -> android.R.drawable.ic_menu_help
         }
-        
-        // Top: Spectrum + Alpha
-        val topContainer = LinearLayout(context).apply {
-             orientation = LinearLayout.HORIZONTAL
-             clipChildren = false
-        }
-        
-        // 1. Spectrum Box
-        val spectrumW = (150 * density).toInt()
-        val spectrumH = (150 * density).toInt()
-        val bitmap = android.graphics.Bitmap.createBitmap(spectrumW, spectrumH, android.graphics.Bitmap.Config.ARGB_8888)
-        val canvas = android.graphics.Canvas(bitmap)
-        
-        // Draw Spectrum
-        val huePaint = android.graphics.Paint()
-        huePaint.shader = LinearGradient(0f, 0f, spectrumW.toFloat(), 0f,
-            intArrayOf(Color.RED, Color.YELLOW, Color.GREEN, Color.CYAN, Color.BLUE, Color.MAGENTA, Color.RED),
-            null, Shader.TileMode.CLAMP)
-        canvas.drawRect(0f, 0f, spectrumW.toFloat(), spectrumH.toFloat(), huePaint)
-        
-        // Draw Sat/Val Overlay
-        // X = Hue (Standard)
-        // Y = Saturation & Value Mixed?
-        // To allow White, we need a path from Color -> White.
-        // To allow Black, we need a path from Color -> Black.
-        // Standard HSV Square: X=Sat, Y=Val ( Hue on slider).
-        // Here X=Hue (Rainbow).
-        // If Y Top = White (Sat=0, Val=100)
-        // If Y Bottom = Black (Val=0)
-        // This means Center is Pure Color? 
-        // Let's try: Top=White, Middle=Transparent (shows Rainbow), Bottom=Black.
-        val satValPaint = android.graphics.Paint()
-        satValPaint.shader = LinearGradient(0f, 0f, 0f, spectrumH.toFloat(),
-            intArrayOf(Color.WHITE, Color.TRANSPARENT, Color.BLACK),
-            floatArrayOf(0f, 0.5f, 1f),
-            Shader.TileMode.CLAMP)
-        canvas.drawRect(0f, 0f, spectrumW.toFloat(), spectrumH.toFloat(), satValPaint)
-        
-        val spectrumContainer = FrameLayout(context).apply {
-            background = createBorderDrawable()
-            setPadding((2 * density).toInt(), (2 * density).toInt(), (2 * density).toInt(), (2 * density).toInt())
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                rightMargin = (8 * density).toInt()
-            }
-        }
-        
-        val imgSpectrum = ImageView(context).apply {
-            setImageBitmap(bitmap)
-            layoutParams = FrameLayout.LayoutParams(spectrumW, spectrumH)
-        }
-        spectrumContainer.addView(imgSpectrum)
-        
-        // 2. Alpha Slider
-        val alphaContainer = FrameLayout(context).apply {
-             layoutParams = LinearLayout.LayoutParams((40 * density).toInt(), spectrumH + (4 * density).toInt()) // Match height roughly
-             background = createBorderDrawable()
-        }
-        val vSeek = SeekBar(context).apply {
-            max = 255
-            progress = 255
-            rotation = 270f
-            // Adjust translation to center rotated seekbar
-            // Height of seekbar becomes Width.
-            // visual width is spectrumH
-            // Layout params width is 40dp.
-            layoutParams = FrameLayout.LayoutParams(spectrumH, (40 * density).toInt()).apply {
-                gravity = android.view.Gravity.CENTER
-            }
-        }
-        alphaContainer.addView(vSeek)
-        
-        topContainer.addView(spectrumContainer)
-        topContainer.addView(alphaContainer)
-        popupRoot.addView(topContainer)
-
-        // Bottom: Hex Input
-        val etHex = EditText(context).apply {
-            hint = "#RRGGBB"
-            textSize = 14f
-            background = createBorderDrawable()
-            setPadding((8 * density).toInt(), (8 * density).toInt(), (8 * density).toInt(), (8 * density).toInt())
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                topMargin = (16 * density).toInt()
-            }
-            // Set current color text IMMEDIATELY
-            setText(vPropColorPreview?.text ?: "#FFFFFF")
-            setSingleLine(true)
-        }
-        popupRoot.addView(etHex)
-
-        // Window
-        val popupWindow = PopupWindow(
-            popupRoot, 
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT,
-            true
-        )
-        popupWindow.elevation = 20f
-        popupWindow.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
-        
-        // Logic
-        var currentRgb = Color.WHITE
-        var currentAlpha = 255
-        
-        fun emit(fromInput: Boolean = false) {
-            val finalColor = (currentAlpha shl 24) or (currentRgb and 0x00FFFFFF)
-            val hex = String.format("#%08X", finalColor)
-            
-            if (!fromInput) {
-                // Determine if we need to update text
-                // Only if it's different to avoid cursor jumping
-                if (etHex.text.toString() != hex) {
-                     // Temporarily remove listener? Or just set flag?
-                     // actually setText triggers listener. 
-                     // We need to differentiate.
-                     etHex.tag = "programmatic"
-                     etHex.setText(hex)
-                     etHex.tag = null
-                }
-            }
-            
-            updateColorPreview(hex)
-            saveCurrentProps()
-        }
-
-        // Spectrum Touch
-        imgSpectrum.setOnTouchListener { _, event ->
-             if (event.action == MotionEvent.ACTION_DOWN || event.action == MotionEvent.ACTION_MOVE) {
-                 val x = event.x.toInt().coerceIn(0, spectrumW - 1)
-                 val y = event.y.toInt().coerceIn(0, spectrumH - 1)
-                 val pixel = bitmap.getPixel(x, y)
-                 currentRgb = pixel
-                 emit()
-             }
-             true
-        }
-        
-        // Alpha Change
-        vSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    currentAlpha = progress
-                    emit()
-                }
-            }
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
-        
-        // Hex Input Change
-        etHex.addTextChangedListener(object : android.text.TextWatcher {
-            override fun afterTextChanged(s: android.text.Editable?) {
-                if (etHex.tag == "programmatic") return
-
-                if (etHex.hasFocus()) {
-                    val hex = s.toString()
-                    if (hex.length >= 7) { 
-                        try {
-                            val c = Color.parseColor(hex)
-                            currentAlpha = Color.alpha(c)
-                            currentRgb = c 
-                            
-                            // Visuals only prevent loop
-                            vSeek.progress = currentAlpha
-                            updateColorPreview(hex)
-                            saveCurrentProps()
-                        } catch(e: Exception) {}
-                    }
-                }
-            }
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-        })
-        
-        // Initial State Sync
-        try {
-            val currHex = vPropColorPreview?.text.toString()
-            if (currHex.isNotEmpty()) {
-                val c = Color.parseColor(currHex)
-                currentAlpha = Color.alpha(c)
-                currentRgb = c
-                vSeek.progress = currentAlpha
-            }
-        } catch(e: Exception) {}
-
-        // Measure and Position ABOVE
-        popupRoot.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED), 
-                          View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
-        val h = popupRoot.measuredHeight
-        
-        // Anchor height
-        val anchorH = vPropColorPreview?.height ?: 0
-        
-        // Y offset: -popupHeight - anchorHeight - margin
-        val yOff = -h - anchorH - (10 * density).toInt()
-        
-        popupWindow.showAsDropDown(vPropColorPreview, 0, yOff)
+    }
+    
+    private fun showIconSelector(anchor: View) {
+        val popup = android.widget.PopupMenu(propertyContainer.context, anchor)
+        popup.menu.add("Plus").setOnMenuItemClickListener { updateIconPreview("plus"); saveCurrentProps(); true }
+        popup.menu.add("Delete").setOnMenuItemClickListener { updateIconPreview("delete"); saveCurrentProps(); true }
+        popup.menu.add("Send").setOnMenuItemClickListener { updateIconPreview("send"); saveCurrentProps(); true }
+        popup.menu.add("Edit").setOnMenuItemClickListener { updateIconPreview("edit"); saveCurrentProps(); true }
+        popup.menu.add("Info").setOnMenuItemClickListener { updateIconPreview("info"); saveCurrentProps(); true }
+        popup.show()
     }
 }

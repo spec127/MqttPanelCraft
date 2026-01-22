@@ -188,7 +188,7 @@ class ProjectViewActivity : AppCompatActivity() {
                 val text = findViewById<View>(R.id.tvHeaderDelete) // Keep ref but don't show
                 
                 if (isHovered) {
-                     header.setBackgroundResource(R.drawable.bg_delete_header)
+                     header.setBackgroundResource(R.drawable.bg_delete_gradient)
                      handle?.visibility = View.GONE
                      trash?.visibility = View.VISIBLE
                      text?.visibility = View.GONE
@@ -393,11 +393,24 @@ class ProjectViewActivity : AppCompatActivity() {
          
          // ...
          // Bottom Sheet Callback for Parallax/Push
+         // Bottom Sheet Callback for Parallax/Push
          val bottomSheet = findViewById<View>(R.id.bottomSheet)
          val sheetBehavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(bottomSheet)
+         
+         // Peek Height: 60dp (Show only Header)
+         val density = resources.displayMetrics.density
+         sheetBehavior.peekHeight = (60 * density).toInt()
+
           sheetBehavior.addBottomSheetCallback(object : com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback() {
               override fun onStateChanged(bottomSheet: View, newState: Int) {
                   updateBottomInset(bottomSheet)
+                  // Auto-restore logic
+                  if ((newState == com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED || 
+                       newState == com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED) 
+                       && viewModel.selectedComponentId.value == null) {
+                       val lastId = propertiesManager.getLastSelectedId()
+                       if (lastId != null) viewModel.selectComponent(lastId)
+                  }
               }
               override fun onSlide(bottomSheet: View, slideOffset: Float) {
                   updateCanvasOcclusion(bottomSheet)
