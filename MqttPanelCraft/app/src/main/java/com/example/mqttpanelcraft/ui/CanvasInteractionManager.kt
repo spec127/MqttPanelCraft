@@ -124,35 +124,26 @@ class CanvasInteractionManager(
                 
                 // Only allow Drag/Resize in Edit Mode
                 if (isEditMode()) {
-                    if (isBottomSheetExpanded()) {
-                         // Sheet Expanded: Lock Components (No Drag/Resize)
-                         // But allow interaction (Select)
-                         val component = findComponentAt(x, y)
-                         if (component != null) {
-                             activeView = component
-                             // currentMode remains IDLE
-                             return true
-                         }
-                    } else {
-                        val handle = findResizeHandleAt(x, y)
-                        if (handle != null) {
-                            currentMode = Mode.RESIZING
-                            activeView = handle 
-                            initW = activeView!!.width
-                            initH = activeView!!.height
-                            canvasCanvas.requestDisallowInterceptTouchEvent(true)
-                            return true
-                        }
-        
-                        val component = findComponentAt(x, y)
-                        if (component != null) {
-                            currentMode = Mode.DRAGGING
-                            activeView = component
-                            initX = component.x
-                            initY = component.y
-                            canvasCanvas.requestDisallowInterceptTouchEvent(true)
-                            return true
-                        }
+                    // Removed "isBottomSheetExpanded" lock to allow Drag/Resize while properties are open.
+                    
+                    val handle = findResizeHandleAt(x, y)
+                    if (handle != null) {
+                        currentMode = Mode.RESIZING
+                        activeView = handle 
+                        initW = activeView!!.width
+                        initH = activeView!!.height
+                        canvasCanvas.requestDisallowInterceptTouchEvent(true)
+                        return true
+                    }
+    
+                    val component = findComponentAt(x, y)
+                    if (component != null) {
+                        currentMode = Mode.DRAGGING
+                        activeView = component
+                        initX = component.x
+                        initY = component.y
+                        canvasCanvas.requestDisallowInterceptTouchEvent(true)
+                        return true
                     }
                 }
 
