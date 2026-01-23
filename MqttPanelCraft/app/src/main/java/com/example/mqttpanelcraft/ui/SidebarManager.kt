@@ -73,12 +73,35 @@ class SidebarManager(
                  
                  // Generate "Real" Preview View for Shadow
                  val checkContext = view.context
-                 val (w, h) = ComponentFactory.getDefaultSize(checkContext, tag)
                  
+                 // Registry only
+                 val def = com.example.mqttpanelcraft.ui.components.ComponentDefinitionRegistry.get(tag)
+                 val (w, h) = if (def != null) {
+                      val density = checkContext.resources.displayMetrics.density
+                      Pair((def.defaultSize.width * density).toInt(), (def.defaultSize.height * density).toInt())
+                 } else {
+                      Pair(300, 300)
+                 }
+
                  // Create temp preview for shadow
-                 val previewView = ComponentFactory.createComponentView(checkContext, tag, true)
+                 val previewView = def?.createView(checkContext, true) ?: View(checkContext)
                  
-                 // Measure and Layout manually for Shadow
+                 // FIX: Apply default styles (Shape, Color, etc.) via onUpdateView
+                 if (def != null) {
+                     val dummyData = com.example.mqttpanelcraft.model.ComponentData(
+                         id = -1,
+                         type = tag,
+                         x = 0f,
+                         y = 0f,
+                         width = w,
+                         height = h,
+                         label = def.labelPrefix,
+                         topicConfig = "",
+                         props = mutableMapOf()
+                     )
+                     def.onUpdateView(previewView, dummyData)
+                 }
+
                  val widthSpec = View.MeasureSpec.makeMeasureSpec(w, View.MeasureSpec.EXACTLY)
                  val heightSpec = View.MeasureSpec.makeMeasureSpec(h, View.MeasureSpec.EXACTLY)
                  previewView.measure(widthSpec, heightSpec)

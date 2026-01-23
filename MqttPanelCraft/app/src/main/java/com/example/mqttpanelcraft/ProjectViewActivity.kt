@@ -214,7 +214,7 @@ class ProjectViewActivity : AppCompatActivity() {
                 val text = findViewById<View>(R.id.tvHeaderDelete) // Keep ref but don't show
                 
                 if (isHovered) {
-                     header.setBackgroundResource(R.drawable.bg_delete_header)
+                     header.setBackgroundResource(R.drawable.bg_delete_gradient)
                      handle?.visibility = View.GONE
                      trash?.visibility = View.VISIBLE
                      text?.visibility = View.GONE
@@ -229,67 +229,13 @@ class ProjectViewActivity : AppCompatActivity() {
             override fun onNewComponent(type: String, x: Float, y: Float) {
                 viewModel.saveSnapshot()
                 
-                // We construct data here to respect drop coordinates (ViewModel's helper uses 100,100)
-                // We can use generateSmartId logic from VM if needed, but VM.addComponent(data) handles ID collision.
-                // But we want smart label here?
-                // ProjectViewModel.generateSmartId was a static helper.
-                // Actually, let's let VM handle everything if possible, OR just create a temporary ID and let VM fix it.
-                // VM.addComponent(data) re-assigns ID if exists.
+                // 1. Unified Creation from ViewModel
+                // This call encapsulates ID, Label, Topic, and Default Size logic.
+                val tempData = viewModel.createNewComponentData(type, x, y)
+                val w = tempData.width
+                val h = tempData.height
                 
-                // Smart Label? 
-                // We need to access VM's logic.
-                // Since `generateSmartTopic` is public in VM, we can use it.
-                // But `getNextSmartLabel` is private.
-                // Wait, I updated `generateSmartTopic` to use `getNextSmartLabel`.
-                // So if we just generate topic, we get the label used in topic? No, topic has underscores.
-                // We want the display label "Button 1".
-                // I should make `getNextSmartLabel` public or use a VM method.
-                // Or just defer label generation to VM?
-                // VM.addComponent(type, topic) generates label. But forces x=100.
-                
-                // Let's add a `addComponent(x, y, type)` to VM? 
-                // Or: modify `onNewComponent` to use what we have.
-                // `viewModel.generateSmartTopic` is available.
-                // I will assume `ComponentData` label can be temporarily generic and updated? No.
-                // I will add a `getSmartLabel(type)` public method in VM?
-                // Or just copy the logic locally?
-                // NO, duplication is bad.
-                
-                // I'll call `val newId = viewModel.addComponent(type, x, y)` -> I need to add this overload to VM.
-                // For now, I will use `viewModel.addComponent(type, ...)` but it puts it at 100,100.
-                // User dropped it at specific X,Y.
-                
-                // Let's just update `ProjectViewModel` to take X, Y in `addComponent`.
-                // BUT I am editing Activity now.
-                // I will use `viewModel.components.value` to find new label manually for now, or just let it be basic.
-                // User said "Naming logic...".
-                
-                // Let's rely on `viewModel.addComponent(data)` logic.
-                // I will just use `viewModel.generateSmartTopic(type)` to get topic.
-                // What about Label? "Button 1"?
-                // `viewModel` has private `getNextSmartLabel`.
-                // I will make `getNextSmartLabel` public (implied I could have done that).
-                // Since I can't change VM in THIS step, I'll do it next step if needed.
-                // But wait, I JUST edited VM. I made `getNextSmartLabel` private.
-                
-                // OK, I will update Activity to just call `val id = viewModel.addComponent(newData)` and select it.
-                // I will assume `newData` creation uses best effort label, OR I can manually call `generateSmartTopic`?
-                // `viewModel.generateSmartTopic(type)` is available.
-                // It returns "Project/ID/Button_1/set".
-                // I can extract "Button_1" -> "Button 1".
-                
-                val smartTopic = viewModel.generateSmartTopic(type)
-                // Extract label from topic for consistency? 
-                // Topic: .../Type_N/...
-                // Extract label from topic for consistency
-                // Topic: Project/ID/ItemName
-                val path = smartTopic.split("/")
-                val labelItem = if (path.isNotEmpty()) path.last() else type.lowercase()
-                val label = labelItem // Already formatted by VM
-
-                val (w, h) = com.example.mqttpanelcraft.ui.ComponentFactory.getDefaultSize(this@ProjectViewActivity, type)
-                
-                // Clamping Logic
+                // 2. Clamping Logic
                 val editorW = editorCanvas.width
                 val editorH = editorCanvas.height
                 val maxX = (editorW - w).toFloat().coerceAtLeast(0f)
@@ -304,18 +250,9 @@ class ProjectViewActivity : AppCompatActivity() {
                 finalX = finalX.coerceIn(0f, maxX)
                 finalY = finalY.coerceIn(0f, maxY)
 
-                // ID will be assigned by VM
-                val newData = ComponentData(
-                    id = 0, // VM will fix
-                    type = type,
-                    x = finalX,
-                    y = finalY,
-                    width = w,
-                    height = h,
-                    label = label,
-                    topicConfig = smartTopic
-                )
-                val newComp = viewModel.addComponent(newData)
+                // 3. Finalize Data & Add
+                val finalData = tempData.copy(x = finalX, y = finalY)
+                val newComp = viewModel.addComponent(finalData)
                 
                 if (newComp != null) {
                     val newId = newComp.id
@@ -490,11 +427,24 @@ class ProjectViewActivity : AppCompatActivity() {
          
          // ...
          // Bottom Sheet Callback for Parallax/Push
+         // Bottom Sheet Callback for Parallax/Push
          val bottomSheet = findViewById<View>(R.id.bottomSheet)
          val sheetBehavior = com.google.android.material.bottomsheet.BottomSheetBehavior.from(bottomSheet)
+         
+         // Peek Height: 60dp (Show only Header)
+         val density = resources.displayMetrics.density
+         sheetBehavior.peekHeight = (60 * density).toInt()
+
           sheetBehavior.addBottomSheetCallback(object : com.google.android.material.bottomsheet.BottomSheetBehavior.BottomSheetCallback() {
               override fun onStateChanged(bottomSheet: View, newState: Int) {
                   updateBottomInset(bottomSheet)
+                  // Auto-restore logic
+                  if ((newState == com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_EXPANDED || 
+                       newState == com.google.android.material.bottomsheet.BottomSheetBehavior.STATE_COLLAPSED) 
+                       && viewModel.selectedComponentId.value == null) {
+                       val lastId = propertiesManager.getLastSelectedId()
+                       if (lastId != null) viewModel.selectComponent(lastId)
+                  }
               }
               override fun onSlide(bottomSheet: View, slideOffset: Float) {
                   updateCanvasOcclusion(bottomSheet)
