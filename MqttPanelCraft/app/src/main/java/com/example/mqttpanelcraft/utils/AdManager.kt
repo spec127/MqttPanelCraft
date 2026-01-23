@@ -89,35 +89,42 @@ object AdManager {
             return
         }
 
-        // 2. Load Ad
-        val adView = AdView(activity)
+        // 2. Setup Placeholder (Show immediately)
+        container.visibility = View.VISIBLE
+        container.removeAllViews()
+        val placeholder = activity.layoutInflater.inflate(com.example.mqttpanelcraft.R.layout.layout_ad_placeholder_banner, container, false)
+        container.addView(placeholder)
         
-        // Use Adaptive Banner Size
+        // Adjust FAB for placeholder height (approx 50dp + padding = 66dp?)
+        // Let's measure or assume standard.
+        // Or wait for layout. For now, simple animation or just let it overlay?
+        // Ideally we want same behavior as Ad.
+        // Placeholder height is wrap_content (approx 66dp). Adaptive banner is similar.
+        // Let's defer FAB animation to when Ad loads (height known) OR just animate for placeholder too?
+        // If we animate for placeholder, we might jump when ad loads.
+        // Let's animate for placeholder now.
+        fab?.animate()?.translationY(-150f)?.setDuration(300)?.start() // Approx 50dp * 3 density
+
+        // 3. Load Ad
+        val adView = AdView(activity)
         val adSize = getAdSize(activity)
         adView.setAdSize(adSize)
-        
         adView.adUnitId = BANNER_AD_ID
 
-        // Create a wrapper for Ad + Close Button
-        val wrapper = FrameLayout(activity)
-        // Reset layout params to wrap the adaptive height
+        // Wrapper for Ad
+        val context = activity
+        val wrapper = FrameLayout(context)
         wrapper.layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
-
-        // Ad Layout Params
         val adParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         ).apply {
             gravity = android.view.Gravity.CENTER
         }
-        
         wrapper.addView(adView, adParams)
-
-        container.removeAllViews()
-        container.addView(wrapper)
 
         val adRequest = AdRequest.Builder().build()
         adView.loadAd(adRequest)
@@ -129,17 +136,21 @@ object AdManager {
                    hideBanner()
                    return
                }
-
+               // Swap: Remove Placeholder, Add Ad
+               container.removeAllViews()
+               container.addView(wrapper)
+               
                container.visibility = View.VISIBLE
-               // Animate FAB up
+               // Animate FAB up to exact height
                val heightPx = adSize.getHeightInPixels(activity).toFloat()
                fab?.animate()?.translationY(-heightPx)?.setDuration(300)?.start()
             }
             override fun onAdFailedToLoad(error: LoadAdError) {
-                Log.e(TAG, "Banner failed to load: ${error.message}")
-                container.visibility = View.GONE
-                // Reset FAB position
-                fab?.animate()?.translationY(0f)?.setDuration(300)?.start()
+                Log.e(TAG, "Banner failed to load: ${error.message}. Showing Placeholder.")
+                // Keep Placeholder Visible
+                container.visibility = View.VISIBLE
+                // Ensure FAB is up (if not already)
+                fab?.animate()?.translationY(-150f)?.setDuration(300)?.start()
             }
         }
     }
@@ -188,9 +199,32 @@ object AdManager {
             }
             interstitialAd?.show(activity)
         } else {
-            Log.d(TAG, "Interstitial not ready")
-            loadInterstitial(activity)
-            onAdClosed()
+            Log.d(TAG, "Interstitial not ready - Showing Placeholder Dialog")
+            loadInterstitial(activity) // Try loading for next time
+            
+            // Show Fallback Dialog
+            androidx.appcompat.app.AlertDialog.Builder(activity)
+                .setTitle("Upgrade to Premium")
+                .setMessage("Support development and remove ads. Enjoy uninterrupted experience!")
+                .setPositiveButton("Go Premium!") { _, _ -> 
+                    // TODO: Navigate to Premium Purchase Page in logic
+                    onAdClosed() 
+                }
+                .setNegativeButton("Later") { _, _ -> 
+                    onAdClosed() 
+                }
+                .setOnDismissListener {
+                    // Safety net if dismissed via other means, though buttons handle it.
+                    // If buttons already called onAdClosed, this might call it again?
+                    // Typically harmless if onAdClosed is idempotent (ViewModel logic usually is).
+                    // But to be cleaner, we can remove onAdClosed from buttons and rely on this.
+                    // But buttons dismiss automatically.
+                    // Let's just trust buttons + back key behavior.
+                    // A simple boolean flag could prevent double call if strictly needed.
+                }
+                .setCancelable(true)
+                .setOnCancelListener { onAdClosed() } // Back key
+                .show()
         }
     }
 

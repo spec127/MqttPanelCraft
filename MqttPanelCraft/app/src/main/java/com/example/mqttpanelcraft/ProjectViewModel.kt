@@ -200,41 +200,62 @@ class ProjectViewModel(application: Application) : AndroidViewModel(application)
         _logs.value = emptyList()
     }
 
-    fun addComponent(type: String, defaultTopic: String): ComponentData? {
-        saveSnapshot()
-        val proj = project.value ?: return null
+    // Unified Factory Method for Creating ComponentData
+    fun createNewComponentData(type: String, x: Float, y: Float): ComponentData {
+        val proj = project.value ?: throw IllegalStateException("Project not loaded")
         
-        // Fix ID Collision: Use Max ID + 1 (System ID)
-        val maxId = proj.components.maxOfOrNull { it.id } ?: 100
-        val newSystemId = maxId + 1
+        // Hybrid Strategy: Definition Architecture > Legacy Factory
+        val definition = com.example.mqttpanelcraft.ui.components.ComponentDefinitionRegistry.get(type)
+
+        // 1. Smart Label (prefix from Definition or Legacy helper)
+        val prefix = definition?.labelPrefix ?: type.lowercase()
+        // We reuse the existing helper but logic might need prefix override if helper doesn't support generic prefix
+        // Actually, getNextSmartLabel(type) is currently private and uses 'when'. 
+        // We will stick to getNextSmartLabel(type) for legacy, but for Definition we might want a new helper?
+        // Let's rely on getNextSmartLabel(type) for now -> It needs to be updated or we assume prefix match.
+        val newLabel = getNextSmartLabel(type) // TODO: Update this to use definition.labelPrefix later
         
-        // Smart Label (User Facing ID)
-        val newLabel = getNextSmartLabel(type)
+        // 2. Smart Topic
         val smartTopic = generateSmartTopic(type)
 
-        // Default Size (Grid Aligned)
-        val (wDp, hDp) = when(type) {
-            "SLIDER", "THERMOMETER", "TEXT" -> 160 to 100
-            "BUTTON", "CAMERA" -> 120 to 60
-            "LED" -> 80 to 80
-            else -> 100 to 100
+        // 3. Default Size
+        val (wPx, hPx) = if (definition != null) {
+             val density = getApplication<android.app.Application>().resources.displayMetrics.density
+             val w = (definition.defaultSize.width * density).toInt()
+             val h = (definition.defaultSize.height * density).toInt()
+             Pair(w, h)
+        } else {
+             // Fallback default
+             Pair(300, 300) 
         }
 
-        val newComp = ComponentData(
+        // 4. System ID
+        val maxId = proj.components.maxOfOrNull { it.id } ?: 100
+        val newSystemId = maxId + 1
+
+        return ComponentData(
             id = newSystemId, 
             type = type,
             topicConfig = smartTopic,
-            x = 100f, 
-            y = 100f, 
-            width = (wDp * density).toInt(),
-            height = (hDp * density).toInt(),
+            x = x, 
+            y = y, 
+            width = wPx,
+            height = hPx,
             label = newLabel,
-            props = mutableMapOf()
+            props = mutableMapOf() // Empty props = Default Color (Transparent)
         )
+    }
+
+    fun addComponent(type: String, defaultTopic: String): ComponentData? {
+        // Legacy support or "Add Button" support - defaulting to 100,100
+        saveSnapshot()
+        val proj = project.value ?: return null
         
-        proj.components.add(newComp)
+        val newData = createNewComponentData(type, 100f, 100f)
+        
+        proj.components.add(newData)
         saveProject() 
-        return newComp
+        return newData
     }
 
     fun addComponent(component: ComponentData): ComponentData? {

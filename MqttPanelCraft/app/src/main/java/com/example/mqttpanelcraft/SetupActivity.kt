@@ -25,6 +25,10 @@ import kotlinx.coroutines.withContext
 import org.eclipse.paho.client.mqttv3.MqttClient
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import android.graphics.Rect
+import android.view.MotionEvent
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 
 class SetupActivity : AppCompatActivity() {
 
@@ -568,11 +572,44 @@ class SetupActivity : AppCompatActivity() {
                 }
             )
         } else {
-             // Fallback if ad not ready? Or force wait?
-             // For user experience, let's save anyway if ad fails to load, or show toast.
-             // V7 requirement says "Watch Ad to Save".
-             // We can try to load again.
-             android.widget.Toast.makeText(this, "Ad is loading, please wait...", android.widget.Toast.LENGTH_SHORT).show()
+             // Fallback: Show Placeholder UI (Non-Ad) and Proceed
+             // User Request: If ad fails, show internal placeholder instead of just waiting
+             val dialogView = layoutInflater.inflate(R.layout.layout_ad_placeholder_banner, null)
+             val dialogBuilder = androidx.appcompat.app.AlertDialog.Builder(this)
+                 .setTitle("Saving Project")
+                 .setView(dialogView)
+                 .setCancelable(false)
+                 .setNegativeButton("Cancel", null) // Just dismiss -> No Save
+                 .setPositiveButton("Continue (30)") { _, _ ->
+                      saveAndFinish(newProject, targetProjectId)
+                 }
+
+             val dialog = dialogBuilder.create()
+             dialog.show()
+             
+             // Setup Countdown
+             val btnContinue = dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+             btnContinue.isEnabled = false
+             btnContinue.setTextColor(Color.GRAY)
+             
+             object : android.os.CountDownTimer(30000, 1000) {
+                 override fun onTick(millisUntilFinished: Long) {
+                     if (dialog.isShowing) {
+                        btnContinue.text = "Continue (${millisUntilFinished / 1000})"
+                     } else {
+                        cancel()
+                     }
+                 }
+                 override fun onFinish() {
+                     if (dialog.isShowing) {
+                        btnContinue.text = "Continue"
+                        btnContinue.isEnabled = true
+                        btnContinue.setTextColor(ContextCompat.getColor(this@SetupActivity, R.color.primary))
+                     }
+                 }
+             }.start()
+             
+             // Background Re-load for next time
              com.example.mqttpanelcraft.utils.AdManager.loadRewarded(this)
         }
     }
@@ -611,6 +648,10 @@ class SetupActivity : AppCompatActivity() {
              }
              val intent = android.content.Intent(this, targetActivity)
              intent.putExtra("PROJECT_ID", targetProjectId)
+             
+             // Fix: Clear Top to prevent duplicate ProjectViewActivity in stack
+             intent.flags = android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP or android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
+             
              startActivity(intent)
              finish()
         }
@@ -654,5 +695,21 @@ class SetupActivity : AppCompatActivity() {
             else -> {} // Handle OTHER if needed
         }
     }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        if (ev?.action == MotionEvent.ACTION_DOWN) {
+            val v = currentFocus
+            if (v is EditText) {
+                val outRect = Rect()
+                v.getGlobalVisibleRect(outRect)
+                if (!outRect.contains(ev.rawX.toInt(), ev.rawY.toInt())) {
+                    v.clearFocus()
+                    val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+                    imm.hideSoftInputFromWindow(v.windowToken, 0)
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev)
     }
+}
 

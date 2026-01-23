@@ -5,6 +5,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import com.example.mqttpanelcraft.R
 import com.example.mqttpanelcraft.model.ComponentData
+import com.example.mqttpanelcraft.ui.components.InterceptableFrameLayout
 
 /**
  * Visual Renderer.
@@ -13,8 +14,7 @@ import com.example.mqttpanelcraft.model.ComponentData
  */
 class ComponentRenderer(
     private val canvasCanvas: FrameLayout,
-    private val context: android.content.Context,
-    private val componentFactory: ComponentFactory = ComponentFactory
+    private val context: android.content.Context
 ) {
 
     // Keep track of existing views to avoid recreating them (Diffing)
@@ -46,7 +46,9 @@ class ComponentRenderer(
 
             if (existingView == null) {
                 // CREATE NEW
-                val newView = componentFactory.createComponentView(context, data.type, isEditMode)
+                val def = com.example.mqttpanelcraft.ui.components.ComponentDefinitionRegistry.get(data.type)
+                val newView = def?.createView(context, isEditMode) ?: android.widget.TextView(context).apply { text = "Unknown: ${data.type}" }
+
                 newView.id = data.id // Important: View ID matches Data ID
                 
                 // Set Layout
@@ -122,22 +124,9 @@ class ComponentRenderer(
              val clear = view.findViewWithTag<View>("CLEAR_BTN")
              clear?.visibility = if (isEditMode && isSelected) View.VISIBLE else View.GONE
              
-             // Color Update
-             data.props["color"]?.let { colorCode ->
-               val content = view.getChildAt(0)
-               if (content != null && content.tag != "RESIZE_HANDLE") {
-                   try {
-                       val color = android.graphics.Color.parseColor(colorCode)
-                       val bg = content.background
-                       if (bg is android.graphics.drawable.GradientDrawable) {
-                           bg.mutate()
-                           bg.setColor(color) 
-                       } else {
-                           content.setBackgroundColor(color)
-                       }
-                   } catch (_: Exception) {}
-               }
-            }
+             // Dynamic Update via Definition
+             val def = com.example.mqttpanelcraft.ui.components.ComponentDefinitionRegistry.get(data.type)
+             def?.onUpdateView(view, data)
         }
     }
     

@@ -3,8 +3,7 @@ package com.example.mqttpanelcraft.ui
 import android.content.Context
 import android.view.View
 import com.example.mqttpanelcraft.model.ComponentData
-import com.example.mqttpanelcraft.ui.behaviors.IComponentBehavior
-import com.example.mqttpanelcraft.ui.behaviors.ButtonBehavior
+
 
 /**
  * Registry and dispatcher for Component Behaviors.
@@ -15,20 +14,20 @@ class ComponentBehaviorManager(
     private val projectIdProvider: () -> String?,
     private val sendMqtt: (topic: String, payload: String) -> Unit
 ) {
-    // Registry
-    private val behaviors = mapOf<String, IComponentBehavior>(
-        "BUTTON" to ButtonBehavior(),
-        "LED" to com.example.mqttpanelcraft.ui.behaviors.LedBehavior(),
-        // "SWITCH" to SwitchBehavior(),
-        // "GAUGE" to GaugeBehavior(),
-        // ... Add new behaviors here
-    )
+    // Registry (Legacy behaviors removed)
+    // private val behaviors = mapOf<String, IComponentBehavior>(...)
 
     fun attachBehavior(view: View, data: ComponentData) {
-        behaviors[data.type]?.onAttach(view, data, sendMqtt)
+        val def = com.example.mqttpanelcraft.ui.components.ComponentDefinitionRegistry.get(data.type)
+        if (def != null) {
+            def.attachBehavior(view, data, sendMqtt)
+        } 
     }
 
     fun onMqttMessageReceived(view: View, data: ComponentData, payload: String) {
-        behaviors[data.type]?.onMqttMessage(view, payload)
+        val def = com.example.mqttpanelcraft.ui.components.ComponentDefinitionRegistry.get(data.type)
+        if (def != null) {
+            def.onMqttMessage(view, data, payload)
+        }
     }
 }

@@ -49,37 +49,12 @@ class DashboardActivity : AppCompatActivity() {
             setupRecyclerView()
             setupFab()
 
-            // Fix Status Bar Overlap
-            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.drawerLayout) { view, insets ->
-                val bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-                // Apply padding to the content container inside Drawer (CoordinatorLayout is usually first child)
-                val content = binding.drawerLayout.getChildAt(0)
-                // Fix: Apply BOTTOM padding too so Banner Ad (gravity=bottom) isn't covered by Nav Bar
-                content.setPadding(0, bars.top, 0, bars.bottom)
-
-                // vFix: Light Status Bar for Dashboard
-                val isDark = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
-                if (!isDark) {
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                         window.insetsController?.setSystemBarsAppearance(
-                             android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
-                             android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-                         )
-                    } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                         @Suppress("DEPRECATION")
-                         window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
-                    }
-                } else {
-                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-                         window.insetsController?.setSystemBarsAppearance(0, android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS)
-                    } else if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-                         @Suppress("DEPRECATION")
-                         window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR.inv()
-                    }
-                }
-
-                androidx.core.view.WindowInsetsCompat.CONSUMED
-            }
+            // Setup Window Insets (Status Bar / Nav Bar) handled by fitsSystemWindows and Themes
+            // removed manual setOnApplyWindowInsetsListener logic
+            
+            // Fix: Explicitly set DrawerLayout status bar color to match background
+            // DrawerLayout with fitsSystemWindows="true" defaults to colorPrimaryDark (Purple) otherwise.
+            binding.drawerLayout.setStatusBarBackgroundColor(androidx.core.content.ContextCompat.getColor(this, R.color.background_color))
 
             // Initialize Data
             ProjectRepository.initialize(this)

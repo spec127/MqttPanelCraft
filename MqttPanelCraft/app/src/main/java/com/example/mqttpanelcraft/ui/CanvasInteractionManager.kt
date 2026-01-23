@@ -51,12 +51,16 @@ class CanvasInteractionManager(
     private var isDragDetected = false
 
     private var isGridSnapEnabled: () -> Boolean = { true }
+    private var isEditMode: () -> Boolean = { false }
+    private var isBottomSheetExpanded: () -> Boolean = { false }
 
-    fun setup(isEditMode: () -> Boolean, isGridEnabled: () -> Boolean) {
+    fun setup(isEditMode: () -> Boolean, isGridEnabled: () -> Boolean, isBottomSheetExpanded: () -> Boolean) {
         this.isGridSnapEnabled = isGridEnabled
+        this.isEditMode = isEditMode
+        this.isBottomSheetExpanded = isBottomSheetExpanded
         
         canvasCanvas.setOnTouchListener { _, event ->
-            if (!isEditMode()) return@setOnTouchListener false
+            // Allow events in Run Mode (for background clicks), filter inside handleTouch
             handleTouch(event)
         }
 
@@ -118,24 +122,38 @@ class CanvasInteractionManager(
                 downY = rawY
                 isDragDetected = false
                 
-                val handle = findResizeHandleAt(x, y)
-                if (handle != null) {
-                    currentMode = Mode.RESIZING
-                    activeView = handle 
-                    initW = activeView!!.width
-                    initH = activeView!!.height
-                    canvasCanvas.requestDisallowInterceptTouchEvent(true)
-                    return true
-                }
-
-                val component = findComponentAt(x, y)
-                if (component != null) {
-                    currentMode = Mode.DRAGGING
-                    activeView = component
-                    initX = component.x
-                    initY = component.y
-                    canvasCanvas.requestDisallowInterceptTouchEvent(true)
-                    return true
+                // Only allow Drag/Resize in Edit Mode
+                if (isEditMode()) {
+                    if (isBottomSheetExpanded()) {
+                         // Sheet Expanded: Lock Components (No Drag/Resize)
+                         // But allow interaction (Select)
+                         val component = findComponentAt(x, y)
+                         if (component != null) {
+                             activeView = component
+                             // currentMode remains IDLE
+                             return true
+                         }
+                    } else {
+                        val handle = findResizeHandleAt(x, y)
+                        if (handle != null) {
+                            currentMode = Mode.RESIZING
+                            activeView = handle 
+                            initW = activeView!!.width
+                            initH = activeView!!.height
+                            canvasCanvas.requestDisallowInterceptTouchEvent(true)
+                            return true
+                        }
+        
+                        val component = findComponentAt(x, y)
+                        if (component != null) {
+                            currentMode = Mode.DRAGGING
+                            activeView = component
+                            initX = component.x
+                            initY = component.y
+                            canvasCanvas.requestDisallowInterceptTouchEvent(true)
+                            return true
+                        }
+                    }
                 }
 
                 callbacks.onComponentClicked(-1) 
@@ -173,29 +191,31 @@ class CanvasInteractionManager(
                     var newY = nominalY
                     
                     if (nominalY > safeLimitY) {
-                         // Resistance Zone
-                         val excess = nominalY - safeLimitY
-                         // Apply heavy damping (Resistance)
-                         val resistedExcess = excess * 0.15f
-                         newY = safeLimitY + resistedExcess
-                         
-                         // Threshold to trigger "Delete" state (e.g. pushed 15dp visually into the zone)
-                         // AND Check X Axis (Center 25% only: 3/8 to 5/8)
-                         val compCenter = newX + compW / 2f
-                         val zoneMin = canvasW * 0.375f
-                         val zoneMax = canvasW * 0.625f
-                         
-                         if (resistedExcess > 15 * density && compCenter >= zoneMin && compCenter <= zoneMax) { 
-                             if (!isDeleteHovered) {
-                                 isDeleteHovered = true
-                                 callbacks.onDeleteZoneHover(true)
-                                 activeView?.alpha = 0.5f
-                             }
+                         // Check if Bottom Sheet is Expanded
+                         if (isBottomSheetExpanded()) {
+                             // Hard Clamp: Cannot enter delete zone if sheet is expanded
+                             newY = safeLimitY
                          } else {
-                             if (isDeleteHovered) {
-                                 isDeleteHovered = false
-                                 callbacks.onDeleteZoneHover(false)
-                                 activeView?.alpha = 1.0f
+                             // Resistance Zone
+                             val excess = nominalY - safeLimitY
+                             // Apply heavy damping (Resistance)
+                             val resistedExcess = excess * 0.15f
+                             newY = safeLimitY + resistedExcess
+                             
+                             // Threshold to trigger "Delete" state (e.g. pushed 15dp visually into the zone)
+                             // Allow deletion across full width (removed center-only check)
+                             if (resistedExcess > 15 * density) { 
+                                 if (!isDeleteHovered) {
+                                     isDeleteHovered = true
+                                     callbacks.onDeleteZoneHover(true)
+                                     activeView?.alpha = 0.5f
+                                 }
+                             } else {
+                                 if (isDeleteHovered) {
+                                     isDeleteHovered = false
+                                     callbacks.onDeleteZoneHover(false)
+                                     activeView?.alpha = 1.0f
+                                 }
                              }
                          }
                     } else {
@@ -281,6 +301,9 @@ class CanvasInteractionManager(
                      if (isDragDetected) {
                          callbacks.onComponentResized(activeView!!.id, activeView!!.width, activeView!!.height)
                      }
+                } else if (activeView != null) {
+                     // IDLE mode (Locked) -> Handle Click
+                     callbacks.onComponentClicked(activeView!!.id)
                 }
 
                 currentMode = Mode.IDLE

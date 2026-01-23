@@ -42,7 +42,7 @@ class LogAdapter : RecyclerView.Adapter<LogAdapter.LogViewHolder>() {
     override fun onBindViewHolder(holder: LogViewHolder, position: Int) {
         holder.textView.text = logs[position]
         holder.textView.textSize = 12f
-        holder.textView.setTextColor(android.graphics.Color.DKGRAY) // Better visibility
+        holder.textView.setTextColor(androidx.core.content.ContextCompat.getColor(holder.itemView.context, R.color.sidebar_text_primary))
     }
 
     override fun getItemCount(): Int = logs.size
